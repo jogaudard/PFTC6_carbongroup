@@ -26,20 +26,6 @@ it is ER):
 
 <img src="group_report_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto auto auto 0;" />
 
-# Data dictionaries
-
-## Fluxes
-
-| Variable name | Description                                                              | Variable type | Variable range or levels | Unit           | How measured                                                             |
-|:--------------|:-------------------------------------------------------------------------|:--------------|:-------------------------|:---------------|:-------------------------------------------------------------------------|
-| turfID        | The ID of the plot of the carbon flux measurement                        | numeric       | Inf - -Inf               | NA             | defined                                                                  |
-| pairID        | NA                                                                       | numeric       | 1 - 137                  | NA             | NA                                                                       |
-| type          | Types of the data that were collected with (ER) and without tarps (NEE). | numeric       | Inf - -Inf               | NA             | defined                                                                  |
-| flux          | The value of the measured carbon flux                                    | numeric       | -55.047 - 68.556         | mmol/sqm/h     | calculated                                                               |
-| temp_soil     | NA                                                                       | numeric       | 0.825 - 21.608           | NA             | NA                                                                       |
-| PARavg        | The mean of the Photosynthetic Active Radiation (PAR) value              | numeric       | 0.046 - 1818.049         | micromol/s/sqm | Automatically measured by the PAR sensor and recorded to the data logger |
-| datetime      | Date and time of the measured carbon flux                                | numeric       | Inf - -Inf               | NA             | defined                                                                  |
-
 # Calculations
 
 ## Fluxes
@@ -64,3 +50,25 @@ Where:
 ## Gross primary productivity
 
 GPP = NEE - ER
+
+# Figures
+
+## Vikesland
+
+<img src="group_report_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto auto auto 0;" />
+Fluxes over 24 hours at Vikesland (data not fully cleaned yet, might
+need some more work).
+
+# Data dictionaries
+
+## Fluxes
+
+| Variable name | Description                                                              | Variable type | Variable range or levels | Unit           | How measured                                                             |
+|:--------------|:-------------------------------------------------------------------------|:--------------|:-------------------------|:---------------|:-------------------------------------------------------------------------|
+| turfID        | The ID of the plot of the carbon flux measurement                        | numeric       | Inf - -Inf               | NA             | defined                                                                  |
+| pairID        | NA                                                                       | numeric       | 1 - 137                  | NA             | NA                                                                       |
+| type          | Types of the data that were collected with (ER) and without tarps (NEE). | numeric       | Inf - -Inf               | NA             | defined                                                                  |
+| flux          | The value of the measured carbon flux                                    | numeric       | -55.047 - 68.556         | mmol/sqm/h     | calculated                                                               |
+| temp_soil     | NA                                                                       | numeric       | 0.825 - 21.608           | NA             | NA                                                                       |
+| PARavg        | The mean of the Photosynthetic Active Radiation (PAR) value              | numeric       | 0.046 - 1818.049         | micromol/s/sqm | Automatically measured by the PAR sensor and recorded to the data logger |
+| datetime      | Date and time of the measured carbon flux                                | numeric       | Inf - -Inf               | NA             | defined                                                                  |

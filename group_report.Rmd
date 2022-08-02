@@ -10,7 +10,7 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = TRUE)
 library(knitr)
 # source("code/vikesland/cleaning_vikesland.R")
 ```
@@ -70,6 +70,11 @@ GPP = NEE - ER
 
 # Figures
 ## Vikesland
+```{r, echo=FALSE, fig.align='left', fig.cap="", fig.height=8, fig.width=15}
+FluxPlot_vikesland
+```
+Fluxes over 24 hours at Vikesland (data not fully cleaned yet, might need some more work).
+
 
 
 
