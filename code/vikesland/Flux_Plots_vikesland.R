@@ -1,6 +1,7 @@
 ## fluxes plots for presenting
 
-source("code/cleaning_vikesland.R")
+source("code/vikesland/cleaning_vikesland.R")
+source("code/metaturf.R")
 
 # right join the metaturf     ------------------------------------------------
 #(we are adding here the treatments, sites, and so on)
@@ -11,9 +12,7 @@ cflux_vikesland <- right_join(
 # filter(type =="ER") %>% 
   # filter(flux>=0) %>% 
   
-FluxPlot_vikesland <- 
-  
-cflux_vikesland %>% 
+FluxPlot_vikesland <- cflux_vikesland %>% 
      filter(type != "NEE") %>%
   mutate(
     type = str_replace_all(type, c(
