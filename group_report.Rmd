@@ -82,6 +82,6 @@ Fluxes over 24 hours at Vikesland (data not fully cleaned yet, might need some m
 ## Fluxes
 
 ```{r, echo=FALSE}
-knitr::kable(cflux_vikesland_dic)
+knitr::kable(cflux_dic)
 ```
 

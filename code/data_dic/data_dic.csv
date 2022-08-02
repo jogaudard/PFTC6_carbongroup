@@ -6,7 +6,7 @@ adj.r.squared,Adjusted R squared,,calculated
 nobs,,,counted
 PARavg,The mean of the Photosynthetic Active Radiation (PAR) value,micromol/s/sqm,Automatically measured by the PAR sensor and recorded to the data logger
 temp_airavg,The mean of the air temperature inside of the chamber,kelvin,Automatically measured by the thermal sensor and recorded to the data logger
-temp_soilavg,The mean of the soil temperature in the outer plot.,celsius,Automatically measured by the thermal sensor and recorded to the data logger
+temp_soil,The mean of the soil temperature in the outer plot.,celsius,Automatically measured by the thermal sensor and recorded to the data logger
 turfID,The ID of the plot of the carbon flux measurement,,defined
 type,Types of the data that were collected with (ER) and without tarps (NEE).,,defined
 datetime,Date and time of the measured carbon flux,,defined
