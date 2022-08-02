@@ -103,7 +103,7 @@ flux.calc.PFTC6 <- function(co2conc, # dataset of CO2 concentration versus time 
       co2conc,
       by = "fluxID"
     ) %>% 
-    select(fluxID, slope, p.value, r.squared, adj.r.squared, nobs, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window) %>% 
+    select(fluxID, slope, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window) %>% 
     distinct() %>% 
     rename(
       datetime = start_window
@@ -112,13 +112,70 @@ flux.calc.PFTC6 <- function(co2conc, # dataset of CO2 concentration versus time 
       flux = (slope * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
       *3600 #secs to hours
       /1000 #micromol to mmol
+      # PARavg = case_when(
+      #   type == "ER" ~ NA_real_,
+      #   type == "NEE" ~ PARavg
+      # )
     ) %>% #flux is now in mmol/m^2/h, which is more common
     arrange(datetime) %>% 
-    select(!slope)
+    select(!c(slope, temp_airavg))
   
   return(fluxes_final)
   
 }
 
 
+# GPP ---------------------------------------------------------------------
 
+GPP.PFTC6 <- function(fluxes){
+  
+fluxes_GPP <- fluxes %>%
+  mutate(
+    pairID = case_when(
+      type == "NEE" ~ fluxID,
+      type == "ER" ~ fluxID-1
+    ),   # problem with datetime, it is different between ER and NEE. Let's use datetime NEE
+    # datetime = case_when(
+    #   type == "NEE" ~ datetime,
+    #   type == "ER" ~ NA_real_
+    # ),
+    turfID = as_factor(turfID),
+    type = as_factor(type)
+  ) %>% 
+  select(!c(fluxID)) %>%
+  # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
+  # select(!c(PAR_corrected_flux)) %>%
+  # select(campaign, turfID, date, type, corrected_flux) %>%
+  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg)) %>% 
+  
+  # pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
+  rename(
+    ER = flux_ER,
+    NEE = flux_NEE
+  ) %>%
+  mutate(
+    GEP = NEE - ER
+  ) %>% 
+  pivot_longer(c(ER, NEE, GEP), names_to = "type", values_to = "flux") %>% 
+  mutate(
+    temp_soil = case_when(
+      type == "ER" ~ temp_soilavg_ER,
+      type == "NEE" ~ temp_soilavg_NEE,
+      type == "GEP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
+    ),
+    PARavg = case_when(
+      type == "ER" ~ PARavg_ER,
+      type == "NEE" ~ PARavg_NEE,
+      type == "GEP" ~ PARavg_NEE
+    ),
+    datetime = case_when(
+      type == "ER" ~ datetime_ER,
+      type == "NEE" ~ datetime_NEE,
+      type == "GEP" ~ datetime_NEE
+    )
+  ) %>% 
+  select(!c(temp_soilavg_ER, temp_soilavg_NEE, PARavg_ER, PARavg_NEE, datetime_ER, datetime_NEE))
+
+return(fluxes_GPP)
+
+}
