@@ -8,10 +8,28 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+# source("code/data_dic/data_dictionnary.R")
 ```
 
 # Introduction
+We study how trait composition influences ecosystem functioning by measuring CO2-flux within and across plant communities, mainly focus on ecosystem carbon dynamics in response to climate change, but also nitrogen deposition and grazing.
+Twenty-four hours of carbon Flux measurement was conducted along the elevational gradients in the four different sites, which are Vikesland (408 masl, 6 plots), Hogsete (697 masl, 3 plots), Joasete (888 masl, 6 plots), and Liahovden (1.267 masl, 3 plots). 
+Net Ecosystem Exchange (NEE) and Ecosystem Respiration (ER) along with Photosynthetic Active Radiation (PAR) were measured using Li-cor LI-840A.
 
+# Data dictionnaries
+## CO~2~ fluxes
+### Vikesland
+
+
+```{r, echo=FALSE}
+knitr::kable(cflux_vikesland_dic)
+```
+
+
+# Figures
+```{r, echo=FALSE, fig.align='left', fig.cap=""}
+# graph
+```
 
 # Field measurements
 
@@ -76,4 +94,4 @@ You should change the battery when it reaches 25% (the last liht).
 
 
 
-# Data dictionnaries
+

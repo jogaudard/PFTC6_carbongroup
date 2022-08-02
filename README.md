@@ -5,6 +5,40 @@ Joseph Gaudard
 
 # Introduction
 
+We study how trait composition influences ecosystem functioning by
+measuring CO2-flux within and across plant communities, mainly focus on
+ecosystem carbon dynamics in response to climate change, but also
+nitrogen deposition and grazing. Twenty-four hours of carbon Flux
+measurement was conducted along the elevational gradients in the four
+different sites, which are Vikesland (408 masl, 6 plots), Hogsete (697
+masl, 3 plots), Joasete (888 masl, 6 plots), and Liahovden (1.267 masl,
+3 plots). Net Ecosystem Exchange (NEE) and Ecosystem Respiration (ER)
+along with Photosynthetic Active Radiation (PAR) were measured using
+Li-cor LI-840A.
+
+# Data dictionnaries
+
+## CO<sub>2</sub> fluxes
+
+### Vikesland
+
+| Variable name | Description                                                              | Variable type | Variable range or levels                                                         | Unit           | How measured                                                                 |
+|:--------------|:-------------------------------------------------------------------------|:--------------|:---------------------------------------------------------------------------------|:---------------|:-----------------------------------------------------------------------------|
+| fluxID        | NA                                                                       | numeric       | 1 - 288                                                                          | NA             | defined                                                                      |
+| p.value       | P value                                                                  | numeric       | 0 - 0.972                                                                        | NA             | calculated                                                                   |
+| r.squared     | R squared                                                                | numeric       | 0 - 0.999                                                                        | NA             | calculated                                                                   |
+| adj.r.squared | Adjusted R squared                                                       | numeric       | -0.011 - 0.999                                                                   | NA             | calculated                                                                   |
+| nobs          | NA                                                                       | numeric       | 60 - 89                                                                          | NA             | counted                                                                      |
+| PARavg        | The mean of the Photosynthetic Active Radiation (PAR) value              | numeric       | -3.71 - 461.292                                                                  | micromol/s/sqm | Automatically measured by the PAR sensor and recorded to the data logger     |
+| temp_airavg   | The mean of the air temperature inside of the chamber                    | numeric       | 283.907 - 293.683                                                                | kelvin         | Automatically measured by the thermal sensor and recorded to the data logger |
+| temp_soilavg  | The mean of the soil temperature in the outer plot.                      | numeric       | 12.155 - 17.667                                                                  | celsius        | Automatically measured by the thermal sensor and recorded to the data logger |
+| turfID        | The ID of the plot of the carbon flux measurement                        | categorical   | 85 WN1C 162, 105 WN3C 173, 158 WN2C 199, TTC 146, TTC 140, TTC 141, 158 WN1C 199 | NA             | defined                                                                      |
+| type          | Types of the data that were collected with (ER) and without tarps (NEE). | categorical   | NEE, ER                                                                          | NA             | defined                                                                      |
+| datetime      | Date and time of the measured carbon flux                                | date_time     | 2022-07-23 21:45:15 - 2022-07-24 22:04:00                                        | NA             | defined                                                                      |
+| flux          | The value of the measured carbon flux                                    | numeric       | -153.429 - 94.614                                                                | mmol/sqm/h     | calculated                                                                   |
+
+# Figures
+
 # Field measurements
 
 ## Start of 24h campaign
@@ -83,5 +117,3 @@ liht).
 5.  Connect the logger
 6.  Check the logger’s clock again
 7.  Arm the logger
-
-# Data dictionnaries
