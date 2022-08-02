@@ -49,13 +49,6 @@ Problems corrected. The negative PAR values were replaced by 0 (because it is ER
 PAR_right_duringER_plot
 ```
 
-# Data dictionaries
-## Fluxes
-
-```{r, echo=FALSE}
-knitr::kable(cflux_vikesland_dic)
-```
-
 # Calculations
 ## Fluxes
 
@@ -74,3 +67,16 @@ Where:
 ## Gross primary productivity
 
 GPP = NEE - ER
+
+# Figures
+## Vikesland
+
+
+
+# Data dictionaries
+## Fluxes
+
+```{r, echo=FALSE}
+knitr::kable(cflux_vikesland_dic)
+```
+
