@@ -64,6 +64,7 @@ cflux <- bind_rows(cflux_vikesland, cflux_hogsete, cflux_liahovden)
 
 cflux_dic <- make_data_dictionary(data = cflux,
                                   description_table = description
+
 )
 
 

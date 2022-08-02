@@ -1,7 +1,16 @@
 ## fluxes plots for presenting
 
-source("code/vikesland/cleaning_vikesland.R")
-source("code/metaturf.R")
+# source("code/vikesland/cleaning_vikesland.R")
+# source("code/metaturf.R")
+
+library(dataDownloader)
+
+get_file(node = "pk4bg",
+         file = "Three-D_24h-cflux_vikesland_2022.csv",
+         path = "clean_data",
+         remote_path = "C-Flux")
+
+cflux_vikesland <- read_csv("clean_data/Three-D_24h-cflux_vikesland_2022.csv")
 
 # right join the metaturf     ------------------------------------------------
 #(we are adding here the treatments, sites, and so on)
@@ -17,7 +26,7 @@ FluxPlot_vikesland <- cflux_vikesland %>%
   mutate(
     type = str_replace_all(type, c(
       "ER" = "Ecosystem Respiration",
-      "GEP" = "Gross Primary Production"
+      "GPP" = "Gross Primary Production"
     ))
     ) %>% 
      # ggplot( aes(
