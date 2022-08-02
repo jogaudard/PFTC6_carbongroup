@@ -20,12 +20,14 @@ library(knitr)
 ## Fluxes
 
 A flux that requires cleaning:
+
 ```{r, echo=FALSE, fig.align='left', fig.cap=""}
 co2_cut_vikesland_60_flux233
 ```
 
 
 A flux that does not require cleaning:
+
 ```{r, echo=FALSE, fig.align='left', fig.cap=""}
 co2_cut_vikesland_60_flux105
 ```
@@ -35,12 +37,14 @@ co2_cut_vikesland_60_flux105
 ## PAR values
 
 Problems with PAR values during ER measurements:
+
 ```{r, echo=FALSE, fig.align='left', fig.cap=""}
 PAR_wrong_duringER_plot
 ```
 
 
 Problems corrected. The negative PAR values were replaced by 0 (because it is ER):
+
 ```{r, echo=FALSE, fig.align='left', fig.cap=""}
 PAR_right_duringER_plot
 ```

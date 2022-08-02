@@ -8,18 +8,22 @@ Group 4
 ## Fluxes
 
 A flux that requires cleaning:
+
 <img src="group_report_files/figure-gfm/unnamed-chunk-1-1.png" style="display: block; margin: auto auto auto 0;" />
 
 A flux that does not require cleaning:
+
 <img src="group_report_files/figure-gfm/unnamed-chunk-2-1.png" style="display: block; margin: auto auto auto 0;" />
 
 ## PAR values
 
 Problems with PAR values during ER measurements:
+
 <img src="group_report_files/figure-gfm/unnamed-chunk-3-1.png" style="display: block; margin: auto auto auto 0;" />
 
 Problems corrected. The negative PAR values were replaced by 0 (because
 it is ER):
+
 <img src="group_report_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto auto auto 0;" />
 
 # Data dictionaries
