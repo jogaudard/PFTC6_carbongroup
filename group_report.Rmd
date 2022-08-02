@@ -3,34 +3,45 @@ title: "Group report"
 author: "Group 4"
 date: '2022-08-02'
 output: github_document
+  # html_document:
+  #     fig_caption: true
+  
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
 # source("code/vikesland/cleaning_vikesland.R")
 ```
 
 # Cleaning
 
 ## Fluxes
-```{r, echo=FALSE, fig.align='left', fig.cap="A flux that requires cleaning"}
+
+A flux that requires cleaning:
+```{r, echo=FALSE, fig.align='left', fig.cap=""}
 co2_cut_vikesland_60_flux233
 ```
 
 
-```{r, echo=FALSE, fig.align='left', fig.cap="A flux that does not require cleaning"}
+A flux that does not require cleaning:
+```{r, echo=FALSE, fig.align='left', fig.cap=""}
 co2_cut_vikesland_60_flux105
 ```
 
 
 
 ## PAR values
-```{r, echo=FALSE, fig.align='left', fig.cap="Problems with PAR values during ER measurements"}
+
+Problems with PAR values during ER measurements:
+```{r, echo=FALSE, fig.align='left', fig.cap=""}
 PAR_wrong_duringER_plot
 ```
 
 
-```{r, echo=FALSE, fig.align='left', fig.cap="Problems corrected. The negative PAR values were replaced by 0 (because it is ER)."}
+Problems corrected. The negative PAR values were replaced by 0 (because it is ER):
+```{r, echo=FALSE, fig.align='left', fig.cap=""}
 PAR_right_duringER_plot
 ```
 

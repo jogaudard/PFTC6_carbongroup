@@ -7,15 +7,20 @@ Group 4
 
 ## Fluxes
 
-<img src="group_report_files/figure-gfm/unnamed-chunk-1-1.png" title="A flux that requires cleaning" alt="A flux that requires cleaning" style="display: block; margin: auto auto auto 0;" />
+A flux that requires cleaning:
+<img src="group_report_files/figure-gfm/unnamed-chunk-1-1.png" style="display: block; margin: auto auto auto 0;" />
 
-<img src="group_report_files/figure-gfm/unnamed-chunk-2-1.png" title="A flux that does not require cleaning" alt="A flux that does not require cleaning" style="display: block; margin: auto auto auto 0;" />
+A flux that does not require cleaning:
+<img src="group_report_files/figure-gfm/unnamed-chunk-2-1.png" style="display: block; margin: auto auto auto 0;" />
 
 ## PAR values
 
-<img src="group_report_files/figure-gfm/unnamed-chunk-3-1.png" title="Problems with PAR values during ER measurements" alt="Problems with PAR values during ER measurements" style="display: block; margin: auto auto auto 0;" />
+Problems with PAR values during ER measurements:
+<img src="group_report_files/figure-gfm/unnamed-chunk-3-1.png" style="display: block; margin: auto auto auto 0;" />
 
-<img src="group_report_files/figure-gfm/unnamed-chunk-4-1.png" title="Problems corrected. The negative PAR values were replaced by 0 (because it is ER)." alt="Problems corrected. The negative PAR values were replaced by 0 (because it is ER)." style="display: block; margin: auto auto auto 0;" />
+Problems corrected. The negative PAR values were replaced by 0 (because
+it is ER):
+<img src="group_report_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto auto auto 0;" />
 
 # Data dictionaries
 
