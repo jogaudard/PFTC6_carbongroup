@@ -20,24 +20,24 @@ Li-cor LI-840A.
 
 ## CO<sub>2</sub> fluxes
 
-### Vikesland
+<!-- ### Vikesland -->
 
-| Variable name | Description                                                              | Variable type | Variable range or levels                                                         | Unit           | How measured                                                                 |
-|:--------------|:-------------------------------------------------------------------------|:--------------|:---------------------------------------------------------------------------------|:---------------|:-----------------------------------------------------------------------------|
-| fluxID        | NA                                                                       | numeric       | 1 - 288                                                                          | NA             | defined                                                                      |
-| p.value       | P value                                                                  | numeric       | 0 - 0.972                                                                        | NA             | calculated                                                                   |
-| r.squared     | R squared                                                                | numeric       | 0 - 0.999                                                                        | NA             | calculated                                                                   |
-| adj.r.squared | Adjusted R squared                                                       | numeric       | -0.011 - 0.999                                                                   | NA             | calculated                                                                   |
-| nobs          | NA                                                                       | numeric       | 60 - 89                                                                          | NA             | counted                                                                      |
-| PARavg        | The mean of the Photosynthetic Active Radiation (PAR) value              | numeric       | -3.71 - 461.292                                                                  | micromol/s/sqm | Automatically measured by the PAR sensor and recorded to the data logger     |
-| temp_airavg   | The mean of the air temperature inside of the chamber                    | numeric       | 283.907 - 293.683                                                                | kelvin         | Automatically measured by the thermal sensor and recorded to the data logger |
-| temp_soilavg  | The mean of the soil temperature in the outer plot.                      | numeric       | 12.155 - 17.667                                                                  | celsius        | Automatically measured by the thermal sensor and recorded to the data logger |
-| turfID        | The ID of the plot of the carbon flux measurement                        | categorical   | 85 WN1C 162, 105 WN3C 173, 158 WN2C 199, TTC 146, TTC 140, TTC 141, 158 WN1C 199 | NA             | defined                                                                      |
-| type          | Types of the data that were collected with (ER) and without tarps (NEE). | categorical   | NEE, ER                                                                          | NA             | defined                                                                      |
-| datetime      | Date and time of the measured carbon flux                                | date_time     | 2022-07-23 21:45:15 - 2022-07-24 22:04:00                                        | NA             | defined                                                                      |
-| flux          | The value of the measured carbon flux                                    | numeric       | -153.429 - 94.614                                                                | mmol/sqm/h     | calculated                                                                   |
+| Variable name | Description                                                              | Variable type | Variable range or levels | Unit           | How measured                                                             |
+|:--------------|:-------------------------------------------------------------------------|:--------------|:-------------------------|:---------------|:-------------------------------------------------------------------------|
+| turfID        | The ID of the plot of the carbon flux measurement                        | numeric       | Inf - -Inf               | NA             | defined                                                                  |
+| pairID        | NA                                                                       | numeric       | 1 - 137                  | NA             | NA                                                                       |
+| type          | Types of the data that were collected with (ER) and without tarps (NEE). | numeric       | Inf - -Inf               | NA             | defined                                                                  |
+| flux          | The value of the measured carbon flux                                    | numeric       | -55.047 - 68.556         | mmol/sqm/h     | calculated                                                               |
+| temp_soil     | NA                                                                       | numeric       | 0.825 - 21.608           | NA             | NA                                                                       |
+| PARavg        | The mean of the Photosynthetic Active Radiation (PAR) value              | numeric       | 0.046 - 1818.049         | micromol/s/sqm | Automatically measured by the PAR sensor and recorded to the data logger |
+| datetime      | Date and time of the measured carbon flux                                | numeric       | Inf - -Inf               | NA             | defined                                                                  |
 
-# Figures
+## Microclimate
+
+<!-- # Figures -->
+<!-- ```{r, echo=FALSE, fig.align='left', fig.cap=""} -->
+<!-- # graph -->
+<!-- ``` -->
 
 # Field measurements
 

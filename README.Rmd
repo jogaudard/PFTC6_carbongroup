@@ -18,18 +18,18 @@ Net Ecosystem Exchange (NEE) and Ecosystem Respiration (ER) along with Photosynt
 
 # Data dictionnaries
 ## CO~2~ fluxes
-### Vikesland
-
+<!-- ### Vikesland -->
 
 ```{r, echo=FALSE}
 knitr::kable(cflux_vikesland_dic)
 ```
 
+## Microclimate
 
-# Figures
-```{r, echo=FALSE, fig.align='left', fig.cap=""}
-# graph
-```
+<!-- # Figures -->
+<!-- ```{r, echo=FALSE, fig.align='left', fig.cap=""} -->
+<!-- # graph -->
+<!-- ``` -->
 
 # Field measurements
 
