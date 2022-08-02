@@ -20,4 +20,18 @@ get_file(node = "pk4bg",
           path = "clean_data",
           remote_path = "C-Flux")
 
-cflux_vikesland <- read_csv("clean_data/Three-D_24h-cflux_vikesland_2022.csv", col_types = "ddddddddffTd")
+cflux_vikesland <- read_csv("clean_data/Three-D_24h-cflux_vikesland_2022.csv", col_types = "ffdddT")
+
+get_file(node = "pk4bg",
+         file = "Three-D_24h-cflux_hogsete_2022.csv",
+         path = "clean_data",
+         remote_path = "C-Flux")
+
+cflux_hogsete <- read_csv("clean_data/Three-D_24h-cflux_hogsete_2022.csv", col_types = "ffdddT")
+
+get_file(node = "pk4bg",
+         file = "Three-D_24h-cflux_liahovden_2022.csv",
+         path = "clean_data",
+         remote_path = "C-Flux")
+
+cflux_liahovden <- read_csv("clean_data/Three-D_24h-cflux_liahovden_2022.csv", col_types = "ffdddT")
