@@ -9,7 +9,6 @@ Group 4
 
 <img src="group_report_files/figure-gfm/unnamed-chunk-1-1.png" title="A flux that requires cleaning" alt="A flux that requires cleaning" style="display: block; margin: auto auto auto 0;" />
 
-bl
 <img src="group_report_files/figure-gfm/unnamed-chunk-2-1.png" title="A flux that does not require cleaning" alt="A flux that does not require cleaning" style="display: block; margin: auto auto auto 0;" />
 
 ## PAR values
