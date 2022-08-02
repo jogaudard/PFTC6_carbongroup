@@ -30,7 +30,7 @@ it is ER):
 
 ## Fluxes
 
-<img src="https://render.githubusercontent.com/render/math?math=\color{violet}flux=slope\times \frac{P\times V}{R\times T\times A}">
+<img src="https://render.githubusercontent.com/render/math?math=\color{violet}flux=slope\times \frac{P\times V}{R\times T\times A}" width = "800" height="200">
 
 Where:
 
