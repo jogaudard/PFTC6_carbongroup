@@ -30,10 +30,7 @@ it is ER):
 
 ## Fluxes
 
-\<img src=“<a
-href="https://render.githubusercontent.com/render/math?math=\color%7Bviolet%7Dflux=slope\times"
-class="uri">https://render.githubusercontent.com/render/math?math=\color{violet}flux=slope\times</a>
-”, width = 100\>
+<img src="https://render.githubusercontent.com/render/math?math=\color{violet}flux=slope\times \frac{P\times V}{R\times T\times A}" width = "50" height="20">
 
 Where:
 
