@@ -4,9 +4,10 @@
 source("code/functions.R")
 
 library("dataDownloader")
-library(tidyverse)
-library(lubridate)
-library(scales)
+
+library("tidyverse")
+library("scales")
+
 
 # download raw data
 # download files from OSF ---------------------------------------
@@ -431,4 +432,5 @@ cflux_vikesland <- GPP.PFTC6(cflux_vikesland)
 
 
 # write_csv(cflux_vikesland, "clean_data/Three-D_24h-cflux_vikesland_2022.csv")
+
 
