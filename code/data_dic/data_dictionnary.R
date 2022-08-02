@@ -67,4 +67,4 @@ cflux_vikesland_dic <- make_data_dictionary(data = cflux_vikesland,
 
 # render readme --------------------------------------------------------
 # to avoid re running everything and slowing down the process, we render the readme file here
-rmarkdown::render(input = "README.Rmd")
+# rmarkdown::render(input = "README.Rmd")
