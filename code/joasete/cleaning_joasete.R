@@ -101,17 +101,17 @@ co2_cut_joasete_90 <- co2_cut_joasete_90 %>%
 
 # visualizing 90 secs cuts in Vikesland (it´s in comments, just in case you don´t want to visualize it)
 
-# theme_set(theme_grey(base_size = 5)) 
-# 
-# co2_cut_vikesland_90 %>% 
-#   ggplot(aes(x = datetime, y = CO2, colour = cut)) +
-#   geom_line(size = 0.2, aes(group = fluxID)) +
-#   # geom_line(size = 0.2) +
-#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
-#   # scale_x_date(date_labels = "%H:%M:%S") +
-#   facet_wrap(vars(fluxID), ncol = 30, scales = "free")
-#   
-# ggsave("fluxes_details_vikesland.png", height = 40, width = 80, units = "cm")
+theme_set(theme_grey(base_size = 5))
+
+co2_cut_joasete_90 %>%
+  ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+  geom_line(size = 0.2, aes(group = fluxID)) +
+  # geom_line(size = 0.2) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(fluxID), ncol = 30, scales = "free")
+
+ggsave("fluxes_details_joasete.png", height = 40, width = 80, units = "cm")
 
 
 # produce clean CO2 cut --------------------------------------------------------
@@ -162,34 +162,48 @@ cflux_joasete <- co2_cut_90_keep %>%
 
 # calculation of GPP ------------------------------------------------------
 
-cflux_joasete_GPP <- cflux_joasete %>%
-  mutate(
-    pairID = case_when(
-      type == "NEE" ~ fluxID,
-      type == "ER" ~ fluxID-1
-    )
+# cflux_joasete_GPP <- cflux_joasete %>%
+#   mutate(
+#     pairID = case_when(
+#       type == "NEE" ~ fluxID,
+#       type == "ER" ~ fluxID-1
+#     )
+#   ) %>% 
+#   select(!c(p.value, r.squared, adj.r.squared, nobs)) %>% 
+#   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
+#   # select(!c(PAR_corrected_flux)) %>%
+#   # select(campaign, turfID, date, type, corrected_flux) %>%
+#   pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
+#   rename(
+#     ER = flux_ER,
+#     NEE = flux_NEE
+#   ) %>%
+#   mutate(
+#     GEP = NEE - ER
+#   ) %>% 
+#   pivot_longer(c(ER, NEE, GEP), names_to = "type", values_to = "corrected_flux") %>% 
+#   mutate(
+#     temp_soil = case_when(
+#       type == "ER" ~ temp_soilavg_ER,
+#       type == "NEE" ~ temp_soilavg_NEE,
+#       type == "GEP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
+#     )
+#   ) %>% 
+#   select(!c(temp_soilavg_ER, temp_soilavg_NEE))
+
+cflux_joasete_GPP <- GPP.PFTC6(cflux_joasete)
+
+
+# verifying data ----------------------------------------------------------
+
+cflux_joasete_GPP %>% 
+  filter(
+    type != "NEE"
   ) %>% 
-  select(!c(p.value, r.squared, adj.r.squared, nobs)) %>% 
-  # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
-  # select(!c(PAR_corrected_flux)) %>%
-  # select(campaign, turfID, date, type, corrected_flux) %>%
-  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
-  rename(
-    ER = flux_ER,
-    NEE = flux_NEE
-  ) %>%
-  mutate(
-    GEP = NEE - ER
-  ) %>% 
-  pivot_longer(c(ER, NEE, GEP), names_to = "type", values_to = "corrected_flux") %>% 
-  mutate(
-    temp_soil = case_when(
-      type == "ER" ~ temp_soilavg_ER,
-      type == "NEE" ~ temp_soilavg_NEE,
-      type == "GEP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
-    )
-  ) %>% 
-  select(!c(temp_soilavg_ER, temp_soilavg_NEE))
+  ggplot(aes(x = datetime, y = flux, color = type)) +
+  geom_point() +
+  geom_text(aes(label = turfID)) +
+  scale_x_datetime(date_breaks = "2 hours", minor_breaks = "30 min", date_labels = "%e/%m \n %H:%M")
   
 
 write_csv(cflux_joasete, "clean_data/Three-D_24h-cflux_joasete_2022.csv")
