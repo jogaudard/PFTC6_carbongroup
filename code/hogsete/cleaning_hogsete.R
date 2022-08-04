@@ -38,16 +38,22 @@ record_hogsete$turfID <- sub("^", "TTC ", record_hogsete$turfID)
 # matching the CO2 concentration data with the turfs using the field record
 # we have defined a default window length of 60 secs.
 
-co2_fluxes_hogsete_60 <- match.flux.PFTC6(co2_24h_hogsete, record_hogsete, window_length = 60, date_format = "ymd")
+co2_fluxes_hogsete <- match.flux.PFTC6(co2_24h_hogsete, record_hogsete, startcrop = 10, window_length = 100, measurement_length = 180, date_format = "ymd")
 
 # cutting hogsete ------------------------------------------------------
-cutting_hogsete <- read_csv("raw_data/PFTC6_cflux_cutting_hogsete.csv", na = "")
+# cutting_hogsete <- read_csv("raw_data/PFTC6_cflux_cutting_hogsete.csv", na = "")
 #cutting_hogsete <- read_csv("raw_data/PFTC6_cflux_cutting_hogsete.csv", na = "", col_types = "dtt") # I removed the last part of the line
 
-cutting_hogsete$start_cut <- gsub("(\\d{2})(?=\\d{2})", "\\1:", cutting_hogsete$start_cut, perl = TRUE) # to add the : in the time
-cutting_hogsete$end_cut <- gsub("(\\d{2})(?=\\d{2})", "\\1:", cutting_hogsete$end_cut, perl = TRUE) # to add the : in the time
+# cutting_hogsete$start_cut <- gsub("(\\d{2})(?=\\d{2})", "\\1:", cutting_hogsete$start_cut, perl = TRUE) # to add the : in the time
+# cutting_hogsete$end_cut <- gsub("(\\d{2})(?=\\d{2})", "\\1:", cutting_hogsete$end_cut, perl = TRUE) # to add the : in the time
 
-co2_cut_hogsete_60 <- co2_fluxes_hogsete_60 %>% 
+cutting_hogsete <- tibble( #bypass manual cuts
+  fluxID = c(1:5),
+  start_cut = NA,
+  end_cut = NA
+)
+
+co2_cut_hogsete <- co2_fluxes_hogsete %>% 
   left_join(cutting_hogsete, by = "fluxID") %>% 
   mutate(
     start_cut = ymd_hms(paste(date, .$start_cut)),
@@ -56,7 +62,7 @@ co2_cut_hogsete_60 <- co2_fluxes_hogsete_60 %>%
 
 # adjusting the time window with manual cuts ------------------------------------------------------
 
-co2_cut_hogsete_60 <- co2_cut_hogsete_60 %>%
+co2_cut_hogsete <- co2_cut_hogsete %>%
   mutate(
     start_window = case_when(
       is.na(start_cut) == FALSE ~ start_cut,
@@ -78,43 +84,43 @@ co2_cut_hogsete_60 <- co2_cut_hogsete_60 %>%
 
 # visualizing 60 secs cuts in hogsete (it´s in comments, just in case you don´t want to visualize it)
 
- theme_set(theme_grey(base_size = 5))
-
- co2_cut_hogsete_60 %>%
-   ggplot(aes(x = datetime, y = CO2, colour = cut)) +
-   geom_line(size = 0.2, aes(group = fluxID)) +
-   # geom_line(size = 0.2) +
-   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
-   # scale_x_date(date_labels = "%H:%M:%S") +
-   facet_wrap(vars(fluxID), ncol = 30, scales = "free")
-
- ggsave("fluxes_details_hogsete.png", height = 40, width = 80, units = "cm")
+ # theme_set(theme_grey(base_size = 5))
+ # 
+ # co2_cut_hogsete_60 %>%
+ #   ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+ #   geom_line(size = 0.2, aes(group = fluxID)) +
+ #   # geom_line(size = 0.2) +
+ #   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+ #   # scale_x_date(date_labels = "%H:%M:%S") +
+ #   facet_wrap(vars(fluxID), ncol = 30, scales = "free")
+ # 
+ # ggsave("fluxes_details_hogsete.png", height = 40, width = 80, units = "cm")
 
 
 # produce clean CO2 cut --------------------------------------------------------
 
-co2_cut_60_keep <- filter(co2_cut_hogsete_60,
+co2_cut_keep <- filter(co2_cut_hogsete,
                           cut == "keep")  #to keep only the part we want to keep
 
 # cleaning PAR --------------------------------------------------------------
 
 # for ER we look at the range of PAR to see if there are errors
-filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
-  summarise(
-    rangePAR = range(PAR)
-  )
+# filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
+#   summarise(
+#     rangePAR = range(PAR)
+  # )
 
 # visualize PAR levels
 
-filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
-
-plot(filt_ER_60$PAR) # Plot the PAR values
-plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
-abline(h=0, col="red")
+# filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
+# 
+# plot(filt_ER_60$PAR) # Plot the PAR values
+# plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
+# abline(h=0, col="red")
 
 # now we are replacing negative PAR values in type=ER by zero values.
 
-co2_cut_60_keep <- co2_cut_60_keep %>% 
+co2_cut_keep <- co2_cut_keep %>% 
   mutate(
     PAR =
       case_when(
@@ -123,31 +129,78 @@ co2_cut_60_keep <- co2_cut_60_keep %>%
       )
   )
 
-# let´s plot the PAR values for ER again:
+filter(co2_cut_keep, type == "NEE") %>% #faster than looking at the graph!
+  summarise(
+    rangePAR = range(PAR, na.rm = TRUE)
+  )
 
-filt_ER_60 <- filter(co2_cut_60_keep, type == "ER")
-
-plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
-abline(h=0, col="red")
-
-unique(filt_ER_60[filt_ER_60$PAR > 60,]$fluxID) # identify the weird values 
-range(filt_ER_60[filt_ER_60$PAR > 60,]$PAR) # and the PAR levels (no big deal)
-unique(filt_ER_60[filt_ER_60$PAR > 60,]$datetime) # who was on the field at this time...
-
-co2_cut_60_keep %>% 
+co2_cut_keep %>% 
   filter(
     type == "NEE"
+    & PAR < 0
   ) %>% 
-  ggplot(aes(datetime, PAR)) +
-  geom_point()+
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14,face="bold"))
+  mutate(
+    datetime = ymd_hms(datetime),
+    time = hms::as_hms(datetime)
+  ) %>% 
+  ggplot(aes(x = time, y = PAR)) +
+  geom_point(size = 0.01) +
+  geom_text(aes(label = fluxID))
 
-# for ER we look at the range of PAR to see if there are errors
-filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
-  summarise(
-    rangePAR = range(PAR)
+co2_cut_keep %>%
+  mutate(
+    fluxID = as.numeric(fluxID)
+  ) %>%
+  filter(
+    fluxID %in% c(3)
+  ) %>%
+  mutate(
+    datetime = ymd_hms(datetime),
+    time = hms::as_hms(datetime)
+  ) %>%
+  ggplot(aes(x = time, y = PAR)) +
+  geom_point() +
+  facet_wrap(vars(fluxID), scales = "free")
+# 
+# 
+co2_cut_keep <- co2_cut_keep %>%
+  mutate(
+    fluxID = as.numeric(fluxID),
+    PAR =
+      case_when(
+        fluxID %in% c(3)
+        # | (fluxID %in% c() & PAR < 0)
+        # | (fluxID ==  & PAR < 50)
+        ~ NA_real_,
+        TRUE ~ PAR
+      )
   )
+
+# let´s plot the PAR values for ER again:
+
+# filt_ER_60 <- filter(co2_cut_60_keep, type == "ER")
+# 
+# plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
+# abline(h=0, col="red")
+# 
+# unique(filt_ER_60[filt_ER_60$PAR > 60,]$fluxID) # identify the weird values 
+# range(filt_ER_60[filt_ER_60$PAR > 60,]$PAR) # and the PAR levels (no big deal)
+# unique(filt_ER_60[filt_ER_60$PAR > 60,]$datetime) # who was on the field at this time...
+# 
+# co2_cut_60_keep %>% 
+#   filter(
+#     type == "NEE"
+#   ) %>% 
+#   ggplot(aes(datetime, PAR)) +
+#   geom_point()+
+#   theme(axis.text=element_text(size=12),
+#         axis.title=element_text(size=14,face="bold"))
+# 
+# # for ER we look at the range of PAR to see if there are errors
+# filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
+#   summarise(
+#     rangePAR = range(PAR)
+#   )
 
 # ... what should we do now??
 # 1. think about weird PAR values. what could be happening, and how to solve it? (Discuss in class)
@@ -158,10 +211,68 @@ filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
 
 # calculation of fluxes ---------------------------------------------------
 
-cflux_hogsete <- co2_cut_60_keep %>% 
+cflux_hogsete <- co2_cut_keep %>% 
   flux.calc.PFTC6()
 
-cflux_hogsete <- GPP.PFTC6(cflux_hogsete)
+# pvalue and R2 rule ------------------------------------------------------
+p = 0.01
+R2 = 0.7
 
-write_csv(cflux_hogsete, "clean_data/Three-D_24h-cflux_hogsete_2022.csv")
+cflux_hogsete_clean <- cflux_hogsete %>%
+  mutate(
+    flux = case_when(
+      "p.value" > p  & adj.r.squared < R2 ~ 0,
+      "p.value" <= p & "adj.r.squared" < R2 ~ NA_real_,
+      "p.value" > p & "adj.r.squared" >= R2 ~ flux,
+      "p.value" <= p & "adj.r.squared" >= R2 ~ flux
+      # , TRUE ~ flux
+    ))
+
+cflux_hogsete_GPP <- GPP.PFTC6(cflux_hogsete)
+cflux_hogsete_GPP_clean <- GPP.PFTC6(cflux_hogsete_clean)
+
+# cflux_hogsete_GPP_clean %>%
+#   filter(type == "GPP") %>%
+#   count(
+#     flux > 0
+#   )
+
+
+# verifying data ----------------------------------------------------------
+
+# cflux_hogsete_GPP %>%
+#   filter(
+#     type != "NEE"
+#   ) %>%
+#   ggplot(aes(x = datetime, y = flux, color = type)) +
+#   geom_point() +
+#   # geom_text(aes(label = turfID)) +
+#   scale_x_datetime(date_breaks = "2 hours", minor_breaks = "30 min", date_labels = "%e/%m \n %H:%M")
+# 
+# cflux_hogsete_GPP_clean %>%
+#   # filter(
+#   #   type != "NEE"
+#   # ) %>%
+#   ggplot(aes(x = datetime, y = flux, color = type)) +
+#   geom_point() +
+#   # geom_text(aes(label = turfID)) +
+#   scale_x_datetime(date_breaks = "2 hours", minor_breaks = "30 min", date_labels = "%e/%m \n %H:%M")
+
+
+# cflux_hogsete <- GPP.PFTC6(cflux_hogsete)
+
+cflux_hogsete_corrected <- GPP_corr.PFTC6(cflux_hogsete_GPP_clean,
+                                            start_night = "23:00:00",
+                                            end_night = "04:00:00",
+                                            strategy = "max")
+
+cflux_hogsete_corrected %>%
+  filter(
+    type != "NEE"
+  ) %>%
+  ggplot(aes(x = time, y = flux_corrected, color = type)) +
+  geom_point() 
+# geom_text(aes(label = turfID))
+
+write_csv(cflux_hogsete_corrected, "clean_data/Three-D_24h-cflux_hogsete_2022.csv")
 
