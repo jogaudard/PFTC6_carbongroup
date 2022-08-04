@@ -9,5 +9,10 @@ temp_airavg,The mean of the air temperature inside of the chamber,kelvin,Automat
 temp_soil,The mean of the soil temperature in the outer plot.,celsius,Automatically measured by the thermal sensor and recorded to the data logger
 turfID,The ID of the plot of the carbon flux measurement,,defined
 type,Types of the data that were collected with (ER) and without tarps (NEE).,,defined
-datetime,Date and time of the measured carbon flux,,defined
+datetime,Date and time of the measured carbon flux,yyyy-mm-dd hh:mm:ss,observed
 flux,The value of the measured carbon flux,mmol/sqm/h,calculated
+time,Time at which the measurement was started,hh:mm:ss,observed
+flux_corrected,Flux corrected for accumulation of CO~2~ in the canopy during the first measurement,mmol/sqm/h,calculated
+warming,Warming treatment,,defined
+origin,Site from which the turfs were transplanted,,defined
+destination,Site at which the turfs were transplanted (current location),,defined

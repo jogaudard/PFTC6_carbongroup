@@ -60,7 +60,7 @@ description <- read_csv("code/data_dic/data_dic.csv")
 # )
 
 # cflux ------------------------------------------------------------------
-cflux <- bind_rows(cflux_vikesland, cflux_hogsete, cflux_liahovden)
+# cflux <- bind_rows(cflux_vikesland, cflux_hogsete, cflux_liahovden)
 
 cflux_dic <- make_data_dictionary(data = cflux,
                                   description_table = description
