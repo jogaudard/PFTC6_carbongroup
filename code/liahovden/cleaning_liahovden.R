@@ -268,8 +268,8 @@ cflux_liahovden_corrected %>%
     type != "NEE"
   ) %>%
   ggplot(aes(x = time, y = flux_corrected, color = type)) +
-  geom_point() 
-# geom_text(aes(label = turfID))
+  geom_point() +
+geom_text(aes(label = turfID))
 
 
 # cflux_liahovden <- GPP.PFTC6(cflux_liahovden)
