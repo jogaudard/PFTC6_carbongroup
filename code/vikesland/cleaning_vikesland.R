@@ -71,6 +71,11 @@ co2_cut_vikesland <- co2_cut_vikesland %>%
     cut = case_when(
       datetime <= start_window | datetime >= end_window ~ "cut",
       # fluxID ==  & datetime %in%  ~ "cut",
+      fluxID == 113 ~ "cut", #starts at 900ppm
+      fluxID == 185 ~ "cut", #starts at 900ppm
+      fluxID == 118 ~ "cut", #starts at 600ppm
+      fluxID == 133 ~ "cut", #starts at 600ppm
+      fluxID == 134 ~ "cut", #starts at 600ppm
       TRUE ~ "keep"
     ),
     cut = as_factor(cut)
@@ -91,6 +96,22 @@ co2_cut_vikesland <- co2_cut_vikesland %>%
 # 
 # ggsave("fluxes_details_vikesland.png", height = 40, width = 80, units = "cm")
 # 
+
+theme_set(theme_grey(base_size = 5))
+co2_cut_vikesland %>%
+  mutate(
+    fluxID = as.numeric(fluxID)
+  ) %>% 
+  filter(
+    fluxID %in% c(133, 134)
+  ) %>% 
+   ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+   geom_line(size = 0.2, aes(group = fluxID)) +
+   # geom_line(size = 0.2) +
+   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+   # scale_x_date(date_labels = "%H:%M:%S") +
+   facet_wrap(vars(fluxID), ncol = 2, scales = "free")
+
 
 # produce clean CO2 cut --------------------------------------------------------
 
@@ -385,7 +406,8 @@ R2 = 0.7
 cflux_vikesland_clean <- cflux_vikesland %>% 
   mutate(
     flux = case_when(
-      "p.value" > p  & adj.r.squared < R2 ~ 0,
+      "p.value" > p  & adj.r.squared < R2 & type == "NEE" ~ 0,
+      "p.value" > p  & adj.r.squared < R2 & type == "ER" ~ NA_real_,
       "p.value" <= p & "adj.r.squared" < R2 ~ NA_real_,
       "p.value" > p & "adj.r.squared" >= R2 ~ flux,
       "p.value" <= p & "adj.r.squared" >= R2 ~ flux
@@ -483,7 +505,7 @@ cflux_vikesland_GPP_clean <- GPP.PFTC6(cflux_vikesland_clean)
 # cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="GEP" & cflux_vikesland$flux > 100),]
 
 cflux_vikesland_corrected <- GPP_corr.PFTC6(cflux_vikesland_GPP_clean,
-                                          start_night = "23:00:00",
+                                          start_night = "22:50:00",
                                           end_night = "04:00:00",
                                           strategy = "max")
 
@@ -492,8 +514,9 @@ cflux_vikesland_corrected %>%
     type != "NEE"
   ) %>%
   ggplot(aes(x = time, y = flux_corrected, color = type)) +
-  geom_point() 
-  # geom_text(aes(label = turfID))
+  geom_point()
+  geom_point(size = 0.01) +
+  geom_text(aes(label = turfID))
 
-write_csv(cflux_vikesland_corrected, "clean_data/Three-D_24h-cflux_vikesland_2022.csv")
+write_csv(cflux_vikesland_corrected, "clean_data/PFTC6_24h-cflux_vikesland_2022.csv")
 

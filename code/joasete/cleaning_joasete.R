@@ -117,6 +117,22 @@ co2_cut_joasete <- co2_cut_joasete %>%
 # 
 # ggsave("fluxes_details_joasete.png", height = 40, width = 80, units = "cm")
 
+theme_set(theme_grey(base_size = 5))
+# 
+co2_cut_joasete %>%
+  mutate(
+    fluxID = as.numeric(fluxID)
+  ) %>% 
+  filter(
+    fluxID %in% c(155, 156)
+  ) %>% 
+  ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+  geom_line(size = 0.2, aes(group = fluxID)) +
+  # geom_line(size = 0.2) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(fluxID), ncol = 2, scales = "free")
+
 
 # produce clean CO2 cut --------------------------------------------------------
 
@@ -227,7 +243,8 @@ R2 = 0.7
 cflux_joasete_clean <- cflux_joasete %>% 
   mutate(
   flux = case_when(
-    "p.value" > p  & adj.r.squared < R2 ~ 0,
+    "p.value" > p  & adj.r.squared < R2 & type == "NEE" ~ 0,
+    "p.value" > p  & adj.r.squared < R2 & type == "ER" ~ NA_real_,
     "p.value" <= p & "adj.r.squared" < R2 ~ NA_real_,
     "p.value" > p & "adj.r.squared" >= R2 ~ flux,
     "p.value" <= p & "adj.r.squared" >= R2 ~ flux
@@ -312,11 +329,12 @@ cflux_joasete_corrected %>%
   ) %>%
   ggplot(aes(x = time, y = flux_corrected, color = type)) +
   geom_point()
+  # geom_point(size = 0.01) +
   # geom_text(aes(label = turfID))
   # scale_x_datetime(date_breaks = "2 hours", minor_breaks = "30 min", date_labels = "%e/%m \n %H:%M")
 
 
   
 
-write_csv(cflux_joasete_corrected, "clean_data/Three-D_24h-cflux_joasete_2022.csv")
+write_csv(cflux_joasete_corrected, "clean_data/PFTC6_24h-cflux_joasete_2022.csv")
 

@@ -93,6 +93,19 @@ co2_cut_liahovden <- co2_cut_liahovden %>%
 # 
 # ggsave("fluxes_details_liahovden.png", height = 40, width = 80, units = "cm")
 
+co2_cut_liahovden %>%
+  mutate(
+    fluxID = as.numeric(fluxID)
+  ) %>% 
+  filter(
+    fluxID %in% c(46, 45, 106, 105, 39, 40)
+  ) %>% 
+  ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+  geom_line(size = 0.2, aes(group = fluxID)) +
+  # geom_line(size = 0.2) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(fluxID), scales = "free")
 
 # produce clean CO2 cut --------------------------------------------------------
 
@@ -221,7 +234,8 @@ R2 = 0.7
 cflux_liahovden_clean <- cflux_liahovden %>%
   mutate(
     flux = case_when(
-      "p.value" > p  & adj.r.squared < R2 ~ 0,
+      "p.value" > p  & adj.r.squared < R2 & type == "NEE" ~ 0,
+      "p.value" > p  & adj.r.squared < R2 & type == "ER" ~ NA_real_,
       "p.value" <= p & "adj.r.squared" < R2 ~ NA_real_,
       "p.value" > p & "adj.r.squared" >= R2 ~ flux,
       "p.value" <= p & "adj.r.squared" >= R2 ~ flux
@@ -266,13 +280,14 @@ cflux_liahovden_corrected <- GPP_corr.PFTC6(cflux_liahovden_GPP_clean,
 cflux_liahovden_corrected %>%
   filter(
     type != "NEE"
+    & turfID == "27 AN3C 27"
   ) %>%
   ggplot(aes(x = time, y = flux_corrected, color = type)) +
-  geom_point() +
-geom_text(aes(label = turfID))
+  geom_point()
+ # + geom_text(aes(label = turfID))
 
 
 # cflux_liahovden <- GPP.PFTC6(cflux_liahovden)
 
-write_csv(cflux_liahovden_corrected, "clean_data/Three-D_24h-cflux_liahovden_2022.csv")
+write_csv(cflux_liahovden_corrected, "clean_data/PFTC6_24h-cflux_liahovden_2022.csv")
 

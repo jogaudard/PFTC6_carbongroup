@@ -221,7 +221,8 @@ R2 = 0.7
 cflux_hogsete_clean <- cflux_hogsete %>%
   mutate(
     flux = case_when(
-      "p.value" > p  & adj.r.squared < R2 ~ 0,
+      "p.value" > p  & adj.r.squared < R2 & type == "NEE" ~ 0,
+      "p.value" > p  & adj.r.squared < R2 & type == "ER" ~ NA_real_,
       "p.value" <= p & "adj.r.squared" < R2 ~ NA_real_,
       "p.value" > p & "adj.r.squared" >= R2 ~ flux,
       "p.value" <= p & "adj.r.squared" >= R2 ~ flux
@@ -274,5 +275,5 @@ cflux_hogsete_corrected %>%
   geom_point() 
 # geom_text(aes(label = turfID))
 
-write_csv(cflux_hogsete_corrected, "clean_data/Three-D_24h-cflux_hogsete_2022.csv")
+write_csv(cflux_hogsete_corrected, "clean_data/PFTC6_24h-cflux_hogsete_2022.csv")
 
