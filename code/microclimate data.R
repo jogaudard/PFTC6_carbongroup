@@ -41,21 +41,17 @@ temp <- map_df(set_names(files), function(file) {
 microclimate <- temp %>% 
   # rename column names
   rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
-  mutate(
-    datetime = as.character(datetime),
-    datetime = substr(datetime, start = 0, stop = 16), #some dates are in ymd_hms format
-    datetime = ymd_hm(datetime)
+  mutate(datetime = ymd_hm(datetime)
   ) %>% 
-  # Soil moisture calibration
-  #mutate(SoilMoisture = a * RawSoilmoisture^2 + b * RawSoilmoisture + c) %>% 
-  # get logger ID -> not needed anymore, have whole filename now!!!
+  # get logger ID 
   mutate(
-    loggerID = substr(File, nchar(File)-13, nchar(File)-6),
+    loggerID = str_sub(File, 28, 35), #adjust this for different file names
     loggerID = as.factor(loggerID)
-  ) %>% 
+  ) %>%
   select(!c(File, ID)) %>% 
-  distinct() 
-  left_join(metatomst, by = "loggerID") %>% 
+  distinct() %>%
+  #join metdata
+  left_join(metatomst, by = "loggerID") 
   # group_by(loggerID) %>%
   # mutate(
   #   date_out = replace_na(date_out, today("CET")) #the logger still in the field don't have a date_out (NA in the metaData), but we need a date_out to filter. Today's date can only be correct because if you are never running this script on future data ;-)
