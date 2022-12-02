@@ -102,7 +102,7 @@ rm(tempLia)
 
 ## make microclimate data ----
 microclimate <- tempPFTC6 %>% 
-  bind_rows(tempThreeD)
+  bind_rows(tempThreeD) %>%
   # rename column names
   rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
   mutate(datetime = ymd_hm(datetime)
@@ -110,7 +110,7 @@ microclimate <- tempPFTC6 %>%
   select(!c(File, ID, X10)) %>% 
   distinct() %>%
   #join metdata
-  left_join(metatomst, by = "loggerID") %>%
+  right_join(metatomst, by = "loggerID") %>%  #Right join to filter out irrelevant loggers
 # calculate soil moisture
   # This function is written by Aud. Link at top of script.
   mutate( 
