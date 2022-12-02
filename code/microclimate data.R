@@ -41,7 +41,7 @@ temp <- map_df(set_names(files), function(file) {
     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
   }, .id = "File")
 
-## clean data ----
+## make microclimate data ----
 microclimate <- temp %>% 
   # rename column names
   rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
@@ -66,4 +66,8 @@ microclimate <- temp %>%
     )) %>%
   select(!c(RawSoilmoisture)) %>% # we want long tidy data
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
-  
+
+# Clean data ----
+microclimate.clean = microclimate %>%
+  # Filter to times the sensor was in the soil
+  filter(datetime > datetime_in & datetime < datetime_out) 
