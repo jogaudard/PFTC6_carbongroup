@@ -54,7 +54,11 @@ tempPFTC6 <- map_df(set_names(files), function(file) {
     file %>% 
     set_names() %>% 
     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
-  }, .id = "File")
+  }, .id = "File")%>%
+  # get logger ID 
+  mutate(
+    loggerID = str_sub(File, 28, 35), #adjust this for different file names
+    loggerID = as.factor(loggerID))
 
 ### Three-D ----
 #### Vik
@@ -86,19 +90,23 @@ tempLia <- map_df(set_names(files3DLia), function(file) {
 ### Grouped object
 tempThreeD = tempVik %>%
   bind_rows(tempJoa) %>%
-  bind_rows(tempLia)
+  bind_rows(tempLia) %>%
+  # get logger ID 
+  mutate(
+    loggerID = str_sub(File, 52, 59), #adjust this for different file names
+    loggerID = as.factor(loggerID))
+
+rm(tempVik)
+rm(tempJoa)
+rm(tempLia)
 
 ## make microclimate data ----
-microclimate <- temp %>% 
+microclimate <- tempPFTC6 %>% 
+  bind_rows(tempThreeD)
   # rename column names
   rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
   mutate(datetime = ymd_hm(datetime)
   ) %>% 
-  # get logger ID 
-  mutate(
-    loggerID = str_sub(File, 28, 35), #adjust this for different file names
-    loggerID = as.factor(loggerID)
-  ) %>%
   select(!c(File, ID, X10)) %>% 
   distinct() %>%
   #join metdata
