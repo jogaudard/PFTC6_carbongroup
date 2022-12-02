@@ -70,4 +70,12 @@ microclimate <- temp %>%
 # Clean data ----
 microclimate.clean = microclimate %>%
   # Filter to times the sensor was in the soil
-  filter(datetime > datetime_in & datetime < datetime_out) 
+  filter(datetime > datetime_in & datetime < datetime_out) %>%
+  mutate(
+    cutting = case_when(
+      # colder than expected
+      sensor == "air_temperature" & value < -40 ~ "cut",
+      # warmer than expected
+      sensor == "air_temperature" & value > 40 ~ "cut"
+    )
+  )
