@@ -73,21 +73,32 @@ microclimate.clean = microclimate %>%
   filter(datetime > datetime_in & datetime < datetime_out) %>%
   mutate(
     cutting = case_when(
-      # colder than expected
+      # air colder than expected
       sensor == "air_temperature" & value < -40 ~ "cut",
-      # warmer than expected
-      sensor == "air_temperature" & value > 40 ~ "cut",
+      # air warmer than expected
+      sensor == "air_temperature" & value > 20 ~ "cut",
+      # soil colder than expected
+      sensor == "soil_temperature" & value < 5 ~ "cut",
+      # soil warmer than expected
+      sensor == "soil_temperature" & value > 20 ~ "cut",
+      # soil drier than expected
+      sensor == "soil_moisture" & value < 0 ~ "cut",
+      # soil wetter than expected
+      sensor == "soil_moisture" & value > 0.5 ~ "cut",
+      #Høgsete's time out seems to be wrong
+      site == "Hogsete" & datetime > ymd_hm("2022-07-31 06:45") ~ "cut",
       TRUE ~ "keep"
     )
   )
 
 # Graphs for visualizing cuts ----
-  ggplot(microclimate.clean, aes(x = datetime, y = value, color = cutting)) +
+  ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"), 
+         aes(x = datetime, y = value, color = cutting)) +
   geom_point(size = 0.04, aes(group = loggerID)) +
   scale_color_manual(values = c(
     "keep" = "#1e90ff",
     "cut" = "#ff0800"
   )) +
-  scale_x_datetime(date_breaks = "1 month", minor_breaks = "10 day", date_labels = "%e/%m/%y") +
+  scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
   # scale_x_date(date_labels = "%H:%M:%S") +
   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
