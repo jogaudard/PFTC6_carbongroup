@@ -1,3 +1,7 @@
+#Soil moisture function ----
+
+source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/Climate/soilmoisture_correction.R")
+
 # Fetch the data from OSF PFTC6 ----
 library(dataDownloader)
 library(tidyverse)
@@ -48,24 +52,18 @@ microclimate <- temp %>%
     loggerID = str_sub(File, 28, 35), #adjust this for different file names
     loggerID = as.factor(loggerID)
   ) %>%
-  select(!c(File, ID)) %>% 
+  select(!c(File, ID, X10)) %>% 
   distinct() %>%
   #join metdata
-  left_join(metatomst, by = "loggerID") 
-  # group_by(loggerID) %>%
-  # mutate(
-  #   date_out = replace_na(date_out, today("CET")) #the logger still in the field don't have a date_out (NA in the metaData), but we need a date_out to filter. Today's date can only be correct because if you are never running this script on future data ;-)
-  # ) %>% 
-  filter(
-    datetime > date_in + 1
-    & datetime < date_out #maybe we don't have the data from the logger that broke, which is why are getting an empty df with that line
-  ) %>% 
-  mutate( # calculate soil moisture
+  left_join(metatomst, by = "loggerID") %>%
+# calculate soil moisture
+  # This function is written by Aud. Link at top of script.
+  mutate( 
     soil_moisture = soil.moist(
       rawsoilmoist = RawSoilmoisture,
       soil_temp = soil_temperature,
       soilclass = "silt_loam" #it is the closest soil class, but still very wrong. The TMS calibration tool does not have any class for our soil
-    )) %>% 
-  select(!c(RawSoilmoisture, logger)) %>% # we want vertical tidy data
+    )) %>%
+  select(!c(RawSoilmoisture)) %>% # we want long tidy data
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
   
