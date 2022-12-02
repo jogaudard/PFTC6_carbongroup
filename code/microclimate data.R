@@ -20,6 +20,28 @@ unzip("raw_data/PFTC6_microclimate_2022.zip", exdir = "raw_data/microclimate")
 file.remove("raw_data/PFTC6_microclimate_2022.zip") #let's free some space
 
 # Climate data ----
+## Read in metadata ----
+# Read in meta data
+metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata.csv", col_types = "ffffffccccccccc") %>% #Note this file is American convention
+  mutate(
+    datetime_in = ymd_hm(datetime_in), #dates in correct format
+    datetime_out = ymd_hms(datetime_out))  %>%
+  # Pretty sure the next line is not needed here
+  # pivot_longer(cols = c(tomst_logger_2, tomst_logger_3), names_to = "logger", values_to = "loggerID") %>% 
+  #now we want to have a single date in colum, same for date out
+  mutate(
+    date_in = case_when(
+      logger == "tomst_logger_2" ~ date_logger2_in,
+      logger == "tomst_logger_3" ~ date_logger3_in
+    ),
+    date_out = case_when(
+      logger == "tomst_logger_2" ~ date_out_fall2020,
+      logger == "tomst_logger_3" ~ date_out_fall2021
+    ),
+    loggerID = substr(loggerID, 4, 12)
+  ) %>% 
+  select(!c(date_logger2_in, date_logger3_in, date_out_fall2020, date_out_fall2021))
+
 ## Read in files ----
 # Make file list
 files <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
@@ -34,7 +56,7 @@ temp <- map_df(set_names(files), function(file) {
 ## clean data ----
 microclimate <- temp %>% 
   # rename column names
-  rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) 
+  rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
   mutate(
     datetime = as.character(datetime),
     datetime = substr(datetime, start = 0, stop = 16), #some dates are in ymd_hms format
