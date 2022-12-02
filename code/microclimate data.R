@@ -98,8 +98,45 @@ microclimate.clean = microclimate %>%
   )
 
 # Graphs for visualizing cuts ----
-  ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"), 
+## Air temperature ----
+  ggplot(microclimate.clean %>% filter(sensor == "air_temperature"), 
          aes(x = datetime, y = value, color = cutting)) +
+  geom_point(size = 0.04, aes(group = loggerID)) +
+  scale_color_manual(values = c(
+    "keep" = "#1e90ff",
+    "cut" = "#ff0800"
+  )) +
+  scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(loggerID), ncol = 3, scales = "free")
+
+## Ground temperature ----
+ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"), 
+       aes(x = datetime, y = value, color = cutting)) +
+  geom_point(size = 0.04, aes(group = loggerID)) +
+  scale_color_manual(values = c(
+    "keep" = "#1e90ff",
+    "cut" = "#ff0800"
+  )) +
+  scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(loggerID), ncol = 3, scales = "free")
+
+## Soil temperature ----
+ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"), 
+       aes(x = datetime, y = value, color = cutting)) +
+  geom_point(size = 0.04, aes(group = loggerID)) +
+  scale_color_manual(values = c(
+    "keep" = "#1e90ff",
+    "cut" = "#ff0800"
+  )) +
+  scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(loggerID), ncol = 3, scales = "free")
+
+## Soil moisture ----
+ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"), 
+       aes(x = datetime, y = value, color = cutting)) +
   geom_point(size = 0.04, aes(group = loggerID)) +
   scale_color_manual(values = c(
     "keep" = "#1e90ff",
