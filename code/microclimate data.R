@@ -131,7 +131,7 @@ microclimate.clean = microclimate %>%
       # air colder than expected
       sensor == "air_temperature" & value < -40 ~ "cut",
       # air warmer than expected
-      sensor == "air_temperature" & value > 20 ~ "cut",
+      sensor == "air_temperature" & value > 30 ~ "cut",
       # ground colder than expected
       sensor == "ground_temperature" & value < -40 ~ "cut",
       # ground warmer than expected
