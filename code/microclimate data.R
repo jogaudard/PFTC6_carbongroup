@@ -200,3 +200,19 @@ ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"),
   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
   # scale_x_date(date_labels = "%H:%M:%S") +
   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
+
+# Make clean CSV ----
+microclimate.export <- microclimate.clean %>% 
+  filter(
+    cutting == "keep"
+  ) %>% 
+  select(datetime, loggerID, turfID, site, sensor, value) %>% 
+  group_by(datetime, loggerID, turfID, site, sensor, value) %>%
+  mutate(
+    n = n()
+  ) %>% 
+  filter(n == 1) %>%  # we keep only the row that are unique
+  select(!n) %>% 
+  ungroup()
+
+write_csv(microclimate.export, "clean_data/2022.12.02_microclimate_PFTC6.csv")
