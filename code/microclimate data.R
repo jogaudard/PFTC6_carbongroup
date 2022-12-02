@@ -76,6 +76,18 @@ microclimate.clean = microclimate %>%
       # colder than expected
       sensor == "air_temperature" & value < -40 ~ "cut",
       # warmer than expected
-      sensor == "air_temperature" & value > 40 ~ "cut"
+      sensor == "air_temperature" & value > 40 ~ "cut",
+      TRUE ~ "keep"
     )
   )
+
+# Graphs for visualizing cuts ----
+  ggplot(microclimate.clean, aes(x = datetime, y = value, color = cutting)) +
+  geom_point(size = 0.04, aes(group = loggerID)) +
+  scale_color_manual(values = c(
+    "keep" = "#1e90ff",
+    "cut" = "#ff0800"
+  )) +
+  scale_x_datetime(date_breaks = "1 month", minor_breaks = "10 day", date_labels = "%e/%m/%y") +
+  # scale_x_date(date_labels = "%H:%M:%S") +
+  facet_wrap(vars(loggerID), ncol = 3, scales = "free")
