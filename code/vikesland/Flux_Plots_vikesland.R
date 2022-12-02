@@ -36,16 +36,17 @@ FluxPlot_vikesland <-
     yintercept = 0, linetype = "dashed", colour = "black") +
   
   geom_vline(
-    xintercept = as.numeric(cflux_vikesland$datetime[505]),
+    xintercept = as.numeric(cflux_vikesland$datetime[250]),
     linetype = 2, colour = "orange", size=1) +
   geom_vline(
-    xintercept = as.numeric(cflux_vikesland$datetime[81]),
+    xintercept = as.numeric(cflux_vikesland$datetime[41]),
     linetype = 2, colour = "blue", size=1) +
-  
+
   scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
   ggtitle("Vikesland (469 m a.s.l.)\nFluctuating Ecosystem Respiration pattern over 24 hours") +
   ylab("CO2 umol m2 h-1") +
   xlab("Time of the day (hours)") +
+
   theme(strip.text.y = element_text(size = 14, colour = "black"),
         axis.ticks = element_line(size=1.5), 
         axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
@@ -65,6 +66,7 @@ FluxPlot_vikesland <-
         plot.title = element_text(size=16)) +
   # panel.background = element_rect(
   #  fill = 'white', colour = 'grey')) +
+  
   scale_color_manual(values = c(
     "ambient" = "#1e90ff",
     "transplant" = "#ff0800"
