@@ -110,11 +110,13 @@ filter(co2_cut_60_keep, type == "NEE") %>% #faster than looking at the graph!
 # ER ---------------------------------
 
 filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
+
 # quick base R plot of PAR vs time
 plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR,
      xlab = "Time of the day (hours)", 
      ylab = "Photosynthetically active radiation (PAR)",
      col = alpha("black", 0.1), pch=20, main= "Vikesland (469 m a.s.l.)\nPAR during ER measures")
+
 abline(h=0, col="red")
 
 ## same plot on ggplot2
@@ -144,7 +146,7 @@ PAR_wrong_duringER_plot <- co2_cut_60_keep %>%
         plot.title = element_text(size=16))
 # panel.background = element_rect(
 #  fill = 'white', colour = 'grey'))
-
+PAR_wrong_duringER_plot
 
 # now we are replacing negative PAR values in type=ER by zero values.
 
@@ -192,6 +194,7 @@ PAR_right_duringER_plot <- co2_cut_60_keep %>%
 # panel.background = element_rect(
 #  fill = 'white', colour = 'grey'))
 
+PAR_right_duringER_plot
 
 #unique(filt_ER_60[filt_ER_60$PAR > 60,]$fluxID) # identify the weird values 
 #range(filt_ER_60[filt_ER_60$PAR > 60,]$PAR) # and the PAR levels (no big deal)
@@ -419,7 +422,7 @@ cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="ER" & cflux_vikeslan
 # remove negative ER values (no sense)
 cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="GEP" & cflux_vikesland$flux < -200),]
 
-cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="GEP" & cflux_vikesland$flux > 100),]
+#cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="GEP" & cflux_vikesland$flux > 100),]
 
 write_csv(cflux_vikesland, "clean_data/Three-D_24h-cflux_vikesland_2022.csv")
 
