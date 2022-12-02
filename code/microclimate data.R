@@ -77,6 +77,10 @@ microclimate.clean = microclimate %>%
       sensor == "air_temperature" & value < -40 ~ "cut",
       # air warmer than expected
       sensor == "air_temperature" & value > 20 ~ "cut",
+      # ground colder than expected
+      sensor == "ground_temperature" & value < -40 ~ "cut",
+      # ground warmer than expected
+      sensor == "ground_temperature" & value > 35 ~ "cut",
       # soil colder than expected
       sensor == "soil_temperature" & value < 5 ~ "cut",
       # soil warmer than expected
@@ -87,12 +91,14 @@ microclimate.clean = microclimate %>%
       sensor == "soil_moisture" & value > 0.5 ~ "cut",
       #Høgsete's time out seems to be wrong
       site == "Hogsete" & datetime > ymd_hm("2022-07-31 06:45") ~ "cut",
+      #Vikesland's time out seems to be wrong
+      site == "Vikesland" & datetime > ymd_hm("2022-08-04 10:45") ~ "cut",
       TRUE ~ "keep"
     )
   )
 
 # Graphs for visualizing cuts ----
-  ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"), 
+  ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"), 
          aes(x = datetime, y = value, color = cutting)) +
   geom_point(size = 0.04, aes(group = loggerID)) +
   scale_color_manual(values = c(
