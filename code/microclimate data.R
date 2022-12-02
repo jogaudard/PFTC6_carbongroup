@@ -4,11 +4,13 @@
 
 source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/Climate/soilmoisture_correction.R")
 
-# Fetch the data from OSF PFTC6 ----
+# Fetch the data -----
+
 library(dataDownloader)
 library(tidyverse)
 library(lubridate)
 
+## from OSF PFTC6 ----
 # Download microclimate data
 get_file(node = "fcbw4",
          file = "PFTC6_microclimate_2022.zip",
@@ -25,6 +27,16 @@ get_file(node = "fcbw4",
 unzip("raw_data/PFTC6_microclimate_2022.zip", exdir = "raw_data/microclimate")
 file.remove("raw_data/PFTC6_microclimate_2022.zip") #let's free some space
 
+## from OSF Three-D ----
+get_file(node = "pk4bg",
+         file = "Three-D_raw_microclimate_2019-2022.zip",
+         path = "raw_data",
+         remote_path = "RawData/Climate")
+
+#Unzip microclimate data
+unzip("raw_data/Three-D_raw_microclimate_2019-2022.zip", exdir = "raw_data/microclimate")
+file.remove("raw_data/Three-D_raw_microclimate_2019-2022.zip") #let's free some space
+
 # Climate data ----
 ## Read in metadata ----
 # Read in meta data
@@ -33,15 +45,18 @@ metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata.csv", col_types = "f
     datetime_in = ymd_hm(datetime_in), #dates in correct format
     datetime_out = ymd_hms(datetime_out))  
 ## Read in files ----
+### PFTC6 ----
 # Make file list
-files <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
+filesPFTC6 <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 # Read in data
-temp <- map_df(set_names(files), function(file) {
+tempPFTC6 <- map_df(set_names(files), function(file) {
     file %>% 
     set_names() %>% 
     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
   }, .id = "File")
+
+
 
 ## make microclimate data ----
 microclimate <- temp %>% 
