@@ -28,13 +28,13 @@ files <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", full.na
 temp <- map_df(set_names(files), function(file) {
     file %>% 
     set_names() %>% 
-    map_df(~ read_delim(file = file, col_names = FALSE, delim = ";"))
+    map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
   }, .id = "File")
 
 ## clean data ----
 microclimate <- temp %>% 
   # rename column names
-  rename("ID" = "X1", "datetime" = "X2", "time_zone" = "X3", "soil_temperature" = "X4", "ground_temperature" = "X5", "air_temperature" = "X6", "RawSoilmoisture" = "X7", "Shake" = "X8", "ErrorFlag" = "X9") %>%
+  rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) 
   mutate(
     datetime = as.character(datetime),
     datetime = substr(datetime, start = 0, stop = 16), #some dates are in ymd_hms format
@@ -66,3 +66,4 @@ microclimate <- temp %>%
     )) %>% 
   select(!c(RawSoilmoisture, logger)) %>% # we want vertical tidy data
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
+  
