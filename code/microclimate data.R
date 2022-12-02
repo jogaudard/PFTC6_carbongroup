@@ -56,7 +56,37 @@ tempPFTC6 <- map_df(set_names(files), function(file) {
     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
   }, .id = "File")
 
+### Three-D ----
+#### Vik
+files3DVik <- dir(path = "raw_data/microclimate/climate/2022_autumn_Vik", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
+tempVik <- map_df(set_names(files3DVik), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
+}, .id = "File")
+
+#### Joa
+files3DJoa <- dir(path = "raw_data/microclimate/climate/2022_autumn_Joa", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+tempJoa <- map_df(set_names(files3DJoa), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
+}, .id = "File")
+
+files3DLia <- dir(path = "raw_data/microclimate/climate/2022_autumn_Lia", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+tempLia <- map_df(set_names(files3DLia), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
+}, .id = "File")
+
+### Grouped object
+tempThreeD = tempVik %>%
+  bind_rows(tempJoa) %>%
+  bind_rows(tempLia)
 
 ## make microclimate data ----
 microclimate <- temp %>% 
