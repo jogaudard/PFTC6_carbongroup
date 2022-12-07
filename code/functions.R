@@ -57,6 +57,10 @@ match.flux.PFTC6 <- function(raw_flux, field_record, window_length = 90, startcr
     filter(
       datetime <= end
       & datetime >= start) %>% #cropping the part of the flux that is after the End and before the Start
+    mutate(
+      type = as_factor(type),
+      fluxID = as.numeric(fluxID)
+    )
     
     return(co2conc)
 }
@@ -103,7 +107,7 @@ flux.calc.PFTC6 <- function(co2conc, # dataset of CO2 concentration versus time 
       co2conc,
       by = "fluxID"
     ) %>% 
-    select(fluxID, slope, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window) %>% 
+    select(fluxID, slope, adj.r.squared, p.value, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window) %>% 
     distinct() %>% 
     rename(
       datetime = start_window
@@ -142,7 +146,7 @@ fluxes_GPP <- fluxes %>%
     turfID = as_factor(turfID),
     type = as_factor(type)
   ) %>% 
-  select(!c(fluxID)) %>%
+  select(!c(fluxID, adj.r.squared, p.value)) %>%
   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
   # select(!c(PAR_corrected_flux)) %>%
   # select(campaign, turfID, date, type, corrected_flux) %>%
@@ -178,4 +182,35 @@ fluxes_GPP <- fluxes %>%
 
 return(fluxes_GPP)
 
+}
+
+
+# correcting for CO2 accumulated in canopy --------------------------------
+
+GPP_corr.PFTC6 <- function(fluxes, start_night = "23:00:00", end_night = "04:00:00", strategy = c("mean", "max")){
+  fluxes_corr <- fluxes %>% 
+    mutate(
+      datetime = ymd_hms(datetime),
+      time = hms::as_hms(datetime),
+      # time = hms(time),
+      type = as_factor(type),
+      difference = case_when(
+        type == "GPP" 
+        & (time >= hms(start_night) | time <= hms(end_night))
+        & flux > 0 
+        ~ flux
+      ),
+      corr_factor = case_when(
+        strategy == "mean" ~ mean(difference, na.rm = TRUE),
+        strategy == "max" ~ max(difference, na.rm = TRUE)
+      ),
+      flux_corrected = case_when(
+        type == "ER" ~ flux,
+        type == "GPP" ~ flux - corr_factor,
+        type == "NEE" ~ flux - corr_factor
+      )
+    ) %>% 
+    select(!c(difference, corr_factor))
+  
+  return(fluxes_corr)
 }
