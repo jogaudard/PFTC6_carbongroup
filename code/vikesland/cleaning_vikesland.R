@@ -136,13 +136,17 @@ co2_cut_keep <- filter(co2_cut_vikesland,
 # visualize PAR level ---------------------------------
 # ER ---------------------------------
 
-# filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
-# # quick base R plot of PAR vs time
-# plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR,
-#      xlab = "Time of the day (hours)", 
-#      ylab = "Photosynthetically active radiation (PAR)",
-#      col = alpha("black", 0.1), pch=20, main= "Vikesland (469 m a.s.l.)\nPAR during ER measures")
-# abline(h=0, col="red")
+
+filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
+
+# quick base R plot of PAR vs time
+plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR,
+     xlab = "Time of the day (hours)", 
+     ylab = "Photosynthetically active radiation (PAR)",
+     col = alpha("black", 0.1), pch=20, main= "Vikesland (469 m a.s.l.)\nPAR during ER measures")
+
+abline(h=0, col="red")
+
 
 ## same plot on ggplot2
 
@@ -171,7 +175,7 @@ co2_cut_keep <- filter(co2_cut_vikesland,
 #         plot.title = element_text(size=16))
 # panel.background = element_rect(
 #  fill = 'white', colour = 'grey'))
-
+PAR_wrong_duringER_plot
 
 # now we are replacing negative PAR values in type=ER by zero values.
 
@@ -186,39 +190,42 @@ co2_cut_keep <- filter(co2_cut_vikesland,
 
 # let´s plot the PAR values for ER again:
 # quick plot with base R
-# filt_ER_60 <- filter(co2_cut_60_keep, type == "ER")
-# 
-# plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
-# abline(h=0, col="red")
-# 
-# # same plot with ggplot2
-# 
-# PAR_right_duringER_plot <- co2_cut_60_keep %>% 
-#   filter(type=="ER") %>% 
-#   ggplot(aes(x = datetime,  y = PAR)) +
-#   geom_point(alpha = 1/10, size = 2) +
-#   geom_hline(
-#     yintercept = 0, linetype = "dashed", colour = "red") +
-#   scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
-#   ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
-#   theme(axis.ticks = element_line(size=1.5), 
-#         axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
-#         axis.title = element_text(size = 14, color ="darkgrey"),
-#         axis.title.x = element_blank(),
-#         axis.line = element_line(color = "grey"),
-#         axis.text = element_text(size = 12),
-#         # legend.position = "none",
-#         legend.text = element_text(size = 8),
-#         legend.title = element_text(size = 8),
-#         #legend.key.width= unit(0.4, 'cm'),
-#         #panel.grid.major.x = element_blank(), 
-#         #panel.grid.major.y = element_blank(),
-#         panel.grid.minor.x = element_blank(),
-#         panel.grid.minor.y = element_blank(),
-#         plot.title = element_text(size=16))
-# # panel.background = element_rect(
-# #  fill = 'white', colour = 'grey'))
-# 
+
+filt_ER_60 <- filter(co2_cut_60_keep, type == "ER")
+
+plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
+abline(h=0, col="red")
+
+# same plot with ggplot2
+
+PAR_right_duringER_plot <- co2_cut_60_keep %>% 
+  filter(type=="ER") %>% 
+  ggplot(aes(x = datetime,  y = PAR)) +
+  geom_point(alpha = 1/10, size = 2) +
+  geom_hline(
+    yintercept = 0, linetype = "dashed", colour = "red") +
+  scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
+  ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
+  theme(axis.ticks = element_line(size=1.5), 
+        axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
+        axis.title = element_text(size = 14, color ="darkgrey"),
+        axis.title.x = element_blank(),
+        axis.line = element_line(color = "grey"),
+        axis.text = element_text(size = 12),
+        # legend.position = "none",
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 8),
+        #legend.key.width= unit(0.4, 'cm'),
+        #panel.grid.major.x = element_blank(), 
+        #panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.title = element_text(size=16))
+# panel.background = element_rect(
+#  fill = 'white', colour = 'grey'))
+
+PAR_right_duringER_plot
+
 
 #unique(filt_ER_60[filt_ER_60$PAR > 60,]$fluxID) # identify the weird values 
 #range(filt_ER_60[filt_ER_60$PAR > 60,]$PAR) # and the PAR levels (no big deal)
@@ -494,6 +501,7 @@ cflux_vikesland_GPP_clean <- GPP.PFTC6(cflux_vikesland_clean)
 #   ) %>%
 #   select(!c(temp_soilavg_ER, temp_soilavg_NEE, PARavg_ER, PARavg_NEE, datetime_ER, datetime_NEE))
 
+
 # cflux_vikesland <- GPP.PFTC6(cflux_vikesland)
 # 
 # # remove negative ER values (no sense)
@@ -519,4 +527,5 @@ cflux_vikesland_corrected %>%
   geom_text(aes(label = turfID))
 
 write_csv(cflux_vikesland_corrected, "clean_data/PFTC6_24h-cflux_vikesland_2022.csv")
+
 
