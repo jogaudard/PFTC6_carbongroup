@@ -42,32 +42,32 @@ co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, st
 
 # cutting Vikesland ------------------------------------------------------
 # cutting_vikesland <- read_csv("raw_data/PFTC6_cflux_cutting_vikesland.csv", na = "", col_types = "dcc")
-cutting_vikesland <- tibble( #bypass manual cuts
-  fluxID = c(1:5),
-  start_cut = NA,
-  end_cut = NA
-)
-
-co2_cut_vikesland <- co2_fluxes_vikesland %>%
-  left_join(cutting_vikesland, by = "fluxID") %>%
-  mutate(
-    start_cut = ymd_hms(paste(date, .$start_cut)),
-    end_cut = ymd_hms(paste(date, .$end_cut))
-  )
+# cutting_vikesland <- tibble( #bypass manual cuts
+#   fluxID = c(1:5),
+#   start_cut = NA,
+#   end_cut = NA
+# )
+# 
+# co2_cut_vikesland <- co2_fluxes_vikesland %>%
+#   left_join(cutting_vikesland, by = "fluxID") %>%
+#   mutate(
+#     start_cut = ymd_hms(paste(date, .$start_cut)),
+#     end_cut = ymd_hms(paste(date, .$end_cut))
+#   )
 
 
 # adjusting the time window with manual cuts ------------------------------------------------------
 
-co2_cut_vikesland <- co2_cut_vikesland %>%
+co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
   mutate(
-    start_window = case_when(
-      is.na(start_cut) == FALSE ~ start_cut,
-      TRUE ~ start_window
-    ),
-    end_window = case_when(
-      is.na(end_cut) == FALSE ~ end_cut,
-      TRUE ~ end_window
-    ),
+    # start_window = case_when(
+    #   is.na(start_cut) == FALSE ~ start_cut,
+    #   TRUE ~ start_window
+    # ),
+    # end_window = case_when(
+    #   is.na(end_cut) == FALSE ~ end_cut,
+    #   TRUE ~ end_window
+    # ),
     cut = case_when(
       datetime <= start_window | datetime >= end_window ~ "cut",
       # fluxID ==  & datetime %in%  ~ "cut",
@@ -80,6 +80,19 @@ co2_cut_vikesland <- co2_cut_vikesland %>%
     ),
     cut = as_factor(cut)
   )
+
+
+# automatic cutting -------------------------------------------------------
+
+# In Zhao et al 2018, the idea is to identify the first stationnary point (derivative is 0) and cut the measurement there.
+
+# Here is the equation we want to use:
+# C = Cmax + a*(t-tz) + (Cz - Cmax)*exp(-b*(t-tz))
+# where C is CO2 concentration
+# Cmax is peak (or dip!?) at beginning of measurement
+# t is time since start of measurement
+# tz is time at which C = Cz (theoretically tz=0?)
+# Cz is the intercept of linear regression of first 15s of measurement
 
 # vizz Vikesland -------------------------------------------------------
 # 
