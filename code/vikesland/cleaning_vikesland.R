@@ -11,20 +11,20 @@ library("scales")
 # download raw data
 # download files from OSF ---------------------------------------
 
-get_file(node = "pk4bg",
-         file = "Three-D_24h-cflux_vikesland_2022.csv",
+get_file(node = "fcbw4",
+         file = "PFTC6_CO2_vikesland_2022.csv",
          path = "raw_data",
-         remote_path = "RawData/C-Flux")
+         remote_path = "raw_data/c_flux_raw_data")
 
-get_file(node = "pk4bg",
+get_file(node = "fcbw4",
          file = "PFTC6_cflux_field-record_vikesland.csv",
          path = "raw_data",
-         remote_path = "RawData/C-Flux")
+         remote_path = "raw_data/c_flux_raw_data")
 
-get_file(node = "pk4bg",
-         file = "PFTC6_cflux_cutting_vikesland.csv",
-         path = "raw_data",
-         remote_path = "RawData/C-Flux")
+# get_file(node = "fcbw4",
+         # file = "PFTC6_cflux_cutting_vikesland.csv",
+         # path = "raw_data",
+         # remote_path = "raw_data/c_flux_raw_data")
 
 # If you manage to download dataDownloader and download the data, you are good! Congrats!
 # In case you did not manage to download the data manually. Call me :-)
@@ -87,12 +87,173 @@ co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
 # In Zhao et al 2018, the idea is to identify the first stationnary point (derivative is 0) and cut the measurement there.
 
 # Here is the equation we want to use:
-# C = Cmax + a*(t-tz) + (Cz - Cmax)*exp(-b*(t-tz))
+# C = Cm + a*(t-tz) + (Cz - Cm)*exp(-b*(t-tz))
 # where C is CO2 concentration
-# Cmax is peak (or dip!?) at beginning of measurement
+# Cm is peak (or dip!?) at beginning of measurement
 # t is time since start of measurement
 # tz is time at which C = Cz (theoretically tz=0?)
 # Cz is the intercept of linear regression of first 15s of measurement
+
+# finding Cz and tz
+
+Cz_window <- 15
+Cm_window <- 100
+
+
+
+Cm_df <- co2_fluxes_vikesland %>% 
+  # filter(
+  #   cut == "keep"
+  # ) %>% 
+  group_by(fluxID) %>% 
+  mutate(
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+  ) %>% 
+  filter(
+    time < Cm_window
+  ) %>% 
+  mutate(
+    Cmax = max(CO2),
+    Cmin = min(CO2)
+  ) %>% 
+  select(fluxID, Cmax, Cmin) %>% 
+  ungroup() %>% 
+  unique()
+
+Cm_slope <- co2_fluxes_vikesland %>% 
+  # filter(
+  #   cut == "keep"
+  # ) %>% 
+  group_by(fluxID) %>% 
+  mutate(
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+  ) %>% 
+  filter(
+    time < Cm_window
+  ) %>% 
+  do({model = lm(CO2 ~ time, data=.)    # create your model
+  data.frame(tidy(model),              # get coefficient info
+             glance(model))}) %>%          # get model info
+  filter(term == "time") %>% 
+  rename(slope = estimate) %>% 
+  select(fluxID, slope) %>% 
+  ungroup()
+
+Cm_df <- left_join(Cm_df, Cm_slope) %>% 
+  mutate(
+    Cm = case_when(
+      slope < 0 ~ Cmax, # when the flux is going down, the stabilisation point is the max concentration
+      slope > 0 ~ Cmin # when the flux is going up, the stabilisation point is the min concentration
+    )
+  ) %>% 
+  select(fluxID, Cm) %>% 
+  ungroup()
+
+Cz_df <- co2_fluxes_vikesland %>% 
+  left_join(Cm_df) %>% 
+  # filter(
+  #   cut == "keep"
+  # ) %>% 
+  group_by(fluxID) %>% 
+  mutate(
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    time = as.double(time)
+  ) %>% 
+  select(fluxID, time, CO2, Cm) %>%
+  mutate(
+    timem = case_when(
+      CO2 == Cm ~ time,
+      CO2 =! Cm ~ NA_real_
+    )
+  ) %>% 
+  fill(timem) %>% 
+  filter(
+    time >= timem
+    & time <= timem + Cz_window
+  ) %>% 
+  do({model = lm(CO2 ~ time, data=.)    # create your model
+  data.frame(tidy(model),              # get coefficient info
+             glance(model))}) %>%          # get model info
+  filter(term == "(Intercept)") %>% 
+  rename(Cz = estimate) %>% 
+  select(fluxID, Cz) %>% 
+  ungroup()
+
+# Cz_df <- co2_fluxes_vikesland %>% 
+#   # filter(
+#   #   cut == "keep"
+#   # ) %>% 
+#   group_by(fluxID) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+#   ) %>% 
+#   select(fluxID, time, CO2) %>%
+#   filter(
+#     time < Cz_window
+#   ) %>% 
+#   do({model = lm(CO2 ~ time, data=.)    # create your model
+#   data.frame(tidy(model),              # get coefficient info
+#              glance(model))}) %>%          # get model info
+#   filter(term == "(Intercept)") %>% 
+#   rename(Cz = estimate) %>% 
+#   select(fluxID, Cz) %>% 
+#   ungroup()
+
+# try with fluxID 111 -----------------------------------------------------
+
+
+test_df <- co2_fluxes_vikesland %>% 
+  filter(
+    fluxID == 111
+    & cut == "keep"
+    ) %>% 
+  mutate(
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    time = as.numeric(time)
+  ) %>%
+  left_join(Cm_df) %>% 
+  left_join(Cz_df) %>% 
+  select(time, CO2, Cm, Cz)
+
+model <- nls(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)), test_df, start = list(a = 0.5, b= 0, tz = -5))
+# model <- nls(CO2 ~ CM + a * time - a *t + (Cz - Cm)*exp(b*t)*exp(-b*time), test_df)
+model2 <- nls(CO2 ~ Cm + (Cz - Cm)*exp(-b*(time-tz)), test_df, start = list(b=0, tz=0))
+
+# I need to understand how to guess the start!
+
+test_df <- test_df %>% 
+  mutate(
+    fit = predict(model)
+  )
+
+ggplot(test_df, aes(time, CO2)) +
+  geom_point() +
+  geom_line(aes(time, fit))
+
+# fun <- function(tz, a, b, Cm, Cz, time) Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)) 
+# 
+# opt <- optimise(fun, c(min(CO2):max(CO2)), Cm=test_df$Cm, Cz=test_df$Cz, time=test_df$time)
+
+
+
+
+
+
+coefficients <- left_join(co2_fluxes_vikesland, Cz_df) %>% 
+  left_join(Cm_df) %>% 
+  filter(
+    cut == "keep"
+  ) %>%
+  # select(fluxID, datetime, CO2, Cz) %>% 
+  mutate(
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+  ) %>% 
+  select(fluxID, time, CO2, Cz, Cm) %>%
+  do({model = CO2 ~ Cm + a*(time-tz) + (Cz - Cm)*exp(-b*(t-tz))   # create your model
+  data.frame(tidy(model),              # get coefficient info
+             glance(model))}) %>%          # get model info
+  filter(term == "(Intercept)") %>% 
+  rename(Cz = estimate) %>% 
 
 # vizz Vikesland -------------------------------------------------------
 # 
@@ -111,19 +272,19 @@ co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
 # 
 
 theme_set(theme_grey(base_size = 5))
-co2_cut_vikesland %>%
+co2_fluxes_vikesland %>%
   mutate(
     fluxID = as.numeric(fluxID)
   ) %>% 
   filter(
-    fluxID %in% c(133, 134)
-  ) %>% 
+    fluxID %in% c(111)
+  ) %>%
    ggplot(aes(x = datetime, y = CO2, colour = cut)) +
    geom_line(size = 0.2, aes(group = fluxID)) +
    # geom_line(size = 0.2) +
    scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
    # scale_x_date(date_labels = "%H:%M:%S") +
-   facet_wrap(vars(fluxID), ncol = 2, scales = "free")
+   facet_wrap(vars(fluxID), ncol = 3, scales = "free")
 
 
 # produce clean CO2 cut --------------------------------------------------------
