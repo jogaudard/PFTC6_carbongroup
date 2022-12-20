@@ -106,19 +106,27 @@ Cm_df <- co2_fluxes_vikesland %>%
   #   cut == "keep"
   # ) %>% 
   group_by(fluxID) %>% 
+  distinct(CO2, .keep_all = TRUE) %>% 
   mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    time = as.double(time)
   ) %>% 
-  filter(
-    time < Cm_window
-  ) %>% 
+  # filter(
+  #   time < Cm_window
+  # ) %>% 
   mutate(
     Cmax = max(CO2),
-    Cmin = min(CO2)
+    Cmin = min(CO2),
+    # tmax = case_when(
+    #         CO2 == Cmax ~ time,
+    #         CO2 =! Cmax ~ NA_real_
+    #       ),
+    tmax = time[CO2 == Cmax],
+    tmin = time[CO2 == Cmin]
   ) %>% 
-  select(fluxID, Cmax, Cmin) %>% 
+  select(fluxID, Cmax, Cmin, tmax, tmin) %>% 
   ungroup() %>% 
-  unique()
+  distinct(Cmax, Cmin, .keep_all = TRUE)
 
 Cm_slope <- co2_fluxes_vikesland %>% 
   # filter(
@@ -126,11 +134,12 @@ Cm_slope <- co2_fluxes_vikesland %>%
   # ) %>% 
   group_by(fluxID) %>% 
   mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    time = as.double(time)
   ) %>% 
-  filter(
-    time < Cm_window
-  ) %>% 
+  # filter(
+  #   time < Cm_window
+  # ) %>% 
   do({model = lm(CO2 ~ time, data=.)    # create your model
   data.frame(tidy(model),              # get coefficient info
              glance(model))}) %>%          # get model info
@@ -142,54 +151,51 @@ Cm_slope <- co2_fluxes_vikesland %>%
 Cm_df <- left_join(Cm_df, Cm_slope) %>% 
   mutate(
     Cm = case_when(
-      slope < 0 ~ Cmax, # when the flux is going down, the stabilisation point is the max concentration
-      slope > 0 ~ Cmin # when the flux is going up, the stabilisation point is the min concentration
+      slope < 0 ~ Cmin, 
+      slope > 0 ~ Cmax 
+    ),
+    tm = case_when(
+      slope < 0 ~ tmin,
+      slope > 0 ~ tmax
     )
   ) %>% 
-  select(fluxID, Cm) %>% 
+  select(fluxID, Cm, tm) %>% 
   ungroup()
 
-Cz_df <- co2_fluxes_vikesland %>% 
-  left_join(Cm_df) %>% 
-  # filter(
-  #   cut == "keep"
-  # ) %>% 
-  group_by(fluxID) %>% 
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.double(time)
-  ) %>% 
-  select(fluxID, time, CO2, Cm) %>%
-  mutate(
-    timem = case_when(
-      CO2 == Cm ~ time,
-      CO2 =! Cm ~ NA_real_
-    )
-  ) %>% 
-  fill(timem) %>% 
-  filter(
-    time >= timem
-    & time <= timem + Cz_window
-  ) %>% 
-  do({model = lm(CO2 ~ time, data=.)    # create your model
-  data.frame(tidy(model),              # get coefficient info
-             glance(model))}) %>%          # get model info
-  filter(term == "(Intercept)") %>% 
-  rename(Cz = estimate) %>% 
-  select(fluxID, Cz) %>% 
-  ungroup()
-
-# Cz_df <- co2_fluxes_vikesland %>% 
+# tz_df <- co2_fluxes_vikesland %>% 
+#   left_join(Cm_df) %>% 
 #   # filter(
 #   #   cut == "keep"
 #   # ) %>% 
 #   group_by(fluxID) %>% 
+#   distinct(CO2, .keep_all = TRUE) %>% # in case there are identical CO2 values
 #   mutate(
-#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time)
 #   ) %>% 
-#   select(fluxID, time, CO2) %>%
+#   # select(fluxID, time, CO2, Cm) %>%
+#   mutate(
+#     tz = case_when(
+#       CO2 == Cm ~ time,
+#       CO2 =! Cm ~ NA_real_
+#     )
+#   ) %>% 
+#   fill(tz) %>% 
+#   ungroup() %>% 
+#   select(fluxID, tz) %>% 
+#   drop_na(tz) %>% 
+#   unique()
+
+# Cz_df <- co2_fluxes_vikesland %>% 
+#   left_join(tz_df) %>% 
+#   group_by(fluxID) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time)
+#   ) %>%
 #   filter(
-#     time < Cz_window
+#     time >= tz
+#     & time <= tz + Cz_window
 #   ) %>% 
 #   do({model = lm(CO2 ~ time, data=.)    # create your model
 #   data.frame(tidy(model),              # get coefficient info
@@ -199,42 +205,171 @@ Cz_df <- co2_fluxes_vikesland %>%
 #   select(fluxID, Cz) %>% 
 #   ungroup()
 
+Cz_df <- co2_fluxes_vikesland %>%
+  # filter(
+  #   cut == "keep"
+  # ) %>%
+  group_by(fluxID) %>%
+  mutate(
+    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    time = as.double(time)
+  ) %>%
+  select(fluxID, time, CO2) %>%
+  filter(
+    time < Cz_window
+  ) %>%
+  do({model = lm(CO2 ~ time, data=.)    # create your model
+  data.frame(tidy(model),              # get coefficient info
+             glance(model))}) %>%          # get model info
+  filter(term == "(Intercept)") %>%
+  rename(Cz = estimate) %>%
+  select(fluxID, Cz) %>%
+  ungroup()
+
+# Cz_df <- co2_fluxes_vikesland %>% 
+#   left_join(Cm_df) %>%
+#   group_by(fluxID) %>%
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time),
+#     time = time - tm
+#   ) %>%
+#   filter(
+#     time >= 0
+#     & time <= Cz_window
+#   ) %>% 
+#   # filter(
+#   #   time >= tm
+#   #   & time <= tm + Cz_window
+#   # ) %>%
+#   do({model = lm(CO2 ~ time, data=.)    # create your model
+#   data.frame(tidy(model),              # get coefficient info
+#              glance(model))}) %>%          # get model info
+#   filter(term == "(Intercept)") %>%
+#   rename(Cz = estimate) %>%
+#   select(fluxID, Cz) %>%
+#   ungroup()
+
+# tz_df <- co2_fluxes_vikesland %>% 
+#   left_join(Cz_df) %>% 
+#   # filter(
+#   #   cut == "keep"
+#   # ) %>% 
+#   group_by(fluxID) %>% 
+#   distinct(CO2, .keep_all = TRUE) %>% # in case there are identical CO2 values
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time)
+#   ) %>% 
+#   # select(fluxID, time, CO2, Cm) %>%
+#   mutate(
+#     tz = case_when(
+#       CO2 == Cz ~ time,
+#       CO2 =! Cz ~ NA_real_
+#     )
+#   ) %>% 
+#   # fill(tz) %>% 
+#   ungroup() %>% 
+#   select(fluxID, tz) %>% 
+#   drop_na(tz) %>% 
+#   unique()
+
 # try with fluxID 111 -----------------------------------------------------
 
 
 test_df <- co2_fluxes_vikesland %>% 
   filter(
-    fluxID == 111
-    & cut == "keep"
-    ) %>% 
+    fluxID == 157
+    # & cut == "keep"
+    ) %>%
+  left_join(Cm_df) %>% 
+  left_join(Cz_df) %>% 
+  # left_join(tz_df) %>% 
   mutate(
     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
     time = as.numeric(time)
-  ) %>%
-  left_join(Cm_df) %>% 
-  left_join(Cz_df) %>% 
-  select(time, CO2, Cm, Cz)
+    # time = time - tm
+    # time = time - tz,
+    # cut = case_when(
+    #   time >= tz ~ "keep",
+    #   time < tz ~ "cut"
+    # )
+  ) %>% 
+  # filter(
+  #   time >= 0
+  #   & time <= 120
+  # ) %>%
+  # filter(
+  #   time >= 25
+  # ) %>%
+  select(time, CO2, Cz) 
+  # filter(cut == "keep")
 
-model <- nls(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)), test_df, start = list(a = 0.5, b= 0, tz = -5))
+# nlc <- nls.control(maxiter = 1000)
+# model <- nls(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)), test_df, start = list(a = 1, b= -1, tz=50), control = nlc)
 # model <- nls(CO2 ~ CM + a * time - a *t + (Cz - Cm)*exp(b*t)*exp(-b*time), test_df)
-model2 <- nls(CO2 ~ Cm + (Cz - Cm)*exp(-b*(time-tz)), test_df, start = list(b=0, tz=0))
+# model2 <- nls(CO2 ~ Cm + (Cz - Cm)*exp(-b*(time-tz)), test_df, start = list(b=10))
 
 # I need to understand how to guess the start!
 
+# model3 <- nlme(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)), test_df)
+
+# model4 <- optimise(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz))
+
+# f <- function(data, a, tz, b) (Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)))
+
+# Cmin <- optimise(f, c(50, 200), tol = 0.0001)
+
+# myfn <- function(data, par) {
+#   with(data, sqrt((1/length(time)) * sum((Cm+par[1]*(time-par[2])+(Cz-Cm)*exp(-par[3]*(time-par[2]))-CO2)^2)))
+# }
+
+myfn <- function(data, par) {
+  with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
+}
+
+# myfn <- function(data, par) {
+#   with(data, sqrt((1/length(time)) * sum((Cz+par[1]*(time-par[2])+(Cm-Cz)*exp(-par[3]*(time-par[2]))-CO2)^2)))
+# }
+
+results <- optim(par = c(500, -1,0.001, 60), fn = myfn, data = test_df)
+
+# optimise(myfn, c(-100, 200), data = test_df)
+  
+
+# optimize()
+
+# deriv(Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz), time)
+
 test_df <- test_df %>% 
   mutate(
-    fit = predict(model)
+    # fit = predict(model)
+    # fit = Cm+results$par[1]*(time-results$par[2])+(Cz-Cm)*exp(-results$par[3]*(time-results$par[2]))
+    # fit = Cz+results$par[1]*(time-results$par[2])+(Cm-Cz)*exp(-results$par[3]*(time-results$par[2]))
+    fit = results$par[1]+results$par[2]*(time-results$par[4])+(Cz-results$par[1])*exp(-results$par[3]*(time-results$par[4]))
+    # fit = Cm + results$par[1]*(time-results$par[2])
+    # fit = 561.8 + 0.15*(time - 10) + (562.2-561.8)*exp(-0*(time- 10))
+    # fit = 518 + 0.15 * (time -10)
+    # fit = 535 + (562-535)*exp(-0.03*(time- 80))
+    # fit = 530 + 0.15 * (time - 120) + (535 - 530) * exp(-0.035 * (time -120))
+    # fit = 545 + 0.15 * (time - 40) + (Cz - 545) * exp(-0.09 * (time - 40))
+    
   )
 
 ggplot(test_df, aes(time, CO2)) +
   geom_point() +
   geom_line(aes(time, fit))
+  # ylim(NA, 600)
+
+results$par
+
+summary(model)
 
 # fun <- function(tz, a, b, Cm, Cz, time) Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)) 
 # 
 # opt <- optimise(fun, c(min(CO2):max(CO2)), Cm=test_df$Cm, Cz=test_df$Cz, time=test_df$time)
 
-
+D(expr= Cm + (Cz - Cm)*exp(-b*(time - tz)), name= time)
 
 
 
@@ -277,7 +412,7 @@ co2_fluxes_vikesland %>%
     fluxID = as.numeric(fluxID)
   ) %>% 
   filter(
-    fluxID %in% c(111)
+    fluxID %in% c(140:160)
   ) %>%
    ggplot(aes(x = datetime, y = CO2, colour = cut)) +
    geom_line(size = 0.2, aes(group = fluxID)) +
