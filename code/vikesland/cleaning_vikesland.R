@@ -159,7 +159,7 @@ Cm_df <- left_join(Cm_df, Cm_slope) %>%
       slope > 0 ~ tmax
     )
   ) %>% 
-  select(fluxID, Cm, tm) %>% 
+  select(fluxID, Cm, tm, slope) %>% 
   ungroup()
 
 # tz_df <- co2_fluxes_vikesland %>% 
@@ -221,9 +221,12 @@ Cz_df <- co2_fluxes_vikesland %>%
   do({model = lm(CO2 ~ time, data=.)    # create your model
   data.frame(tidy(model),              # get coefficient info
              glance(model))}) %>%          # get model info
-  filter(term == "(Intercept)") %>%
-  rename(Cz = estimate) %>%
-  select(fluxID, Cz) %>%
+  pivot_wider(id_cols = fluxID, names_from = "term", values_from = "estimate") %>% 
+  # filter(term == "(Intercept)") %>%
+  rename(
+    Cz = "(Intercept)",
+    slope_Cz = time) %>%
+  select(fluxID, Cz, slope_Cz) %>%
   ungroup()
 
 # Cz_df <- co2_fluxes_vikesland %>% 
@@ -279,7 +282,8 @@ Cz_df <- co2_fluxes_vikesland %>%
 
 test_df <- co2_fluxes_vikesland %>% 
   filter(
-    fluxID == 157
+    # fluxID == 157
+    fluxID == 111
     # & cut == "keep"
     ) %>%
   left_join(Cm_df) %>% 
@@ -302,7 +306,7 @@ test_df <- co2_fluxes_vikesland %>%
   # filter(
   #   time >= 25
   # ) %>%
-  select(time, CO2, Cz) 
+  select(time, CO2, Cz, Cm, tm, slope_Cz, slope) 
   # filter(cut == "keep")
 
 # nlc <- nls.control(maxiter = 1000)
@@ -332,7 +336,78 @@ myfn <- function(data, par) {
 #   with(data, sqrt((1/length(time)) * sum((Cz+par[1]*(time-par[2])+(Cm-Cz)*exp(-par[3]*(time-par[2]))-CO2)^2)))
 # }
 
-results <- optim(par = c(500, -1,0.001, 60), fn = myfn, data = test_df)
+# estimation of starting parameters
+
+# Cm can be estimated as the min (negative flux) or max (positive flux) CO2 concentration of the entire flux
+
+Cm <- test_df %>% 
+  select(Cm) %>% 
+  unique()
+
+Cm <- Cm[[1]]
+
+# a can be estimated as the slope of the linear regression after the last min or max, alternatively the last 60 s of the flux
+
+a <- test_df %>% 
+  mutate(
+    tm = case_when(
+    length(time) >= tm + 30 ~ tm,
+    length(time) < tm + 30 ~ length(time) - 30
+    )
+  ) %>% 
+  filter(
+    time > tm
+  ) %>% 
+  do({model = lm(CO2 ~ time, data=.)    # create your model
+  data.frame(tidy(model),              # get coefficient info
+             glance(model))}) %>%          # get model info
+  filter(term == "time") %>%
+  rename(a = estimate) %>%
+  select(a) %>% 
+  unique()
+  
+a <- a[[1]]
+
+  
+
+# tz can be estimated as the time of the closest CO2 measurement to Cz
+
+tz <- test_df %>% 
+  filter(
+    time >= 15 # because we don't want the first "disturbed" 15 seconds that are used to calculade Cz
+  ) %>% 
+  mutate(
+    Cd = abs(CO2 - Cz)
+  ) %>% 
+  filter(
+    Cd == min(Cd)
+  ) %>% 
+  select(time) %>% 
+  rename(tz = time) %>% 
+  unique()
+
+tz <- tz[[1]]
+
+Cz <- test_df$Cz[[1]]
+  
+# I don't have a good idea for b at this stage
+# let's try to estimate b assuming C fits CO2 perfectly at t = tz - 1
+# t = tz -1 was a particular case that did not work. t = tz + 10 is more general
+
+Ct <- test_df %>% 
+  filter(
+    time == tz + 10
+  ) %>% 
+  select(CO2)
+
+Ct <- Ct[[1]]
+  
+b <- log((Ct - Cm - a * 10)/(Cz - Cm)) * (-1/10)
+ 
+
+
+
+results <- optim(par = c(Cm, a, b, tz), fn = myfn, data = test_df)
 
 # optimise(myfn, c(-100, 200), data = test_df)
   
