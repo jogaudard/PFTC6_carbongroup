@@ -401,6 +401,7 @@ fitting.flux <- function(data,
   }
   
   # problem: need to loop the optim on each group of fluxID with specific par per group. MAybe I need to do a for loop
+  # other idea: make a tibble with a column with par as vector and CO2 and time in another column as a df, and summarize optim on that
   
   fitting_par <- cut_CO2_df %>% 
     left_join(estimates_df) %>% 
