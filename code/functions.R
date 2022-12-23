@@ -214,3 +214,226 @@ GPP_corr.PFTC6 <- function(fluxes, start_night = "23:00:00", end_night = "04:00:
   
   return(fluxes_corr)
 }
+
+
+# zhao2018 ----------------------------------------------------------------
+
+# function to select window automatically and calculate slope based on zhao et al 2018
+
+# function providing the df with the two fits, linear and non linear
+fitting.flux <- function(data,
+                         weird_fluxesID = NA, # a vector of fluxes to discard because they are obviously wrong
+                         t_window = 20,
+                         Cz_window = 15,
+                         b_window = 10){
+  
+  data <- co2_fluxes_vikesland %>% 
+    filter(
+      fluxID %in% c(100:115)
+    )
+  
+  CO2_df <- data %>% 
+    group_by(fluxID) %>% 
+    mutate(
+      time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+      time = as.double(time),
+      tmax = max(datetime[CO2 == max(CO2)]),
+      tmin = min(datetime[CO2 == min(CO2)]),
+      start_cut = case_when(
+        tmax > tmin ~ tmin - t_window,
+        tmin > tmax ~ tmax - t_window
+      ),
+      end_cut = case_when(
+        tmax < tmin ~ tmin + t_window,
+        tmin < tmax ~ tmax + t_window
+      ),
+      start_window = case_when(
+        start_cut > start_window ~ start_cut,
+        TRUE ~ start_window
+      ),
+      end_window = case_when(
+        end_cut < end_window ~ end_cut,
+        TRUE ~ end_window
+      ),
+      cut = case_when(
+        datetime <= start_window | datetime >= end_window ~ "cut",
+        # fluxID ==  & datetime %in%  ~ "cut",
+        fluxID %in% weird_fluxesID ~ "cut",
+        TRUE ~ "keep"
+      ),
+      cut = as_factor(cut)
+    ) %>% 
+    ungroup()
+  
+  cut_CO2_df <- CO2_df %>% 
+    group_by(fluxID) %>% 
+    filter(cut == "keep") %>% 
+    mutate(
+      time_cut = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+      time_cut = as.double(time_cut)
+    ) %>% 
+      ungroup()
+  
+  Cm_df <- cut_CO2_df %>% 
+    group_by(fluxID) %>% 
+    distinct(CO2, .keep_all = TRUE) %>% 
+    # mutate(
+    #   time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    #   time = as.double(time)
+    # ) %>% 
+    mutate(
+      Cmax = max(CO2),
+      Cmin = min(CO2),
+      tmax = time_cut[CO2 == Cmax],
+      tmin = time_cut[CO2 == Cmin]
+    ) %>% 
+    select(fluxID, Cmax, Cmin, tmax, tmin) %>% 
+    ungroup() %>% 
+    distinct(Cmax, Cmin, .keep_all = TRUE)
+  
+  Cm_slope <- cut_CO2_df %>% 
+    group_by(fluxID) %>% 
+    # mutate(
+    #   time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    #   time = as.double(time)
+    # ) %>% 
+    do({model = lm(CO2 ~ time_cut, data=.)    # create your model
+    data.frame(tidy(model),              # get coefficient info
+               glance(model))}) %>%          # get model info
+    filter(term == "time_cut") %>% 
+    rename(slope_Cm = estimate) %>% 
+    select(fluxID, slope_Cm) %>% 
+    ungroup()
+  
+  Cm_df <- left_join(Cm_df, Cm_slope) %>% 
+    mutate(
+      Cm_est = case_when(
+        slope_Cm < 0 ~ Cmin, 
+        slope_Cm > 0 ~ Cmax 
+      ),
+      tm = case_when(
+        slope_Cm < 0 ~ tmin,
+        slope_Cm > 0 ~ tmax
+      )
+    ) %>% 
+    select(fluxID, Cm_est, tm, slope_Cm) %>% 
+    ungroup()
+  
+  Cz_df <- cut_CO2_df %>%
+    group_by(fluxID) %>%
+    # mutate(
+    #   time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    #   time = as.double(time)
+    # ) %>%
+    # select(fluxID, time, CO2) %>%
+    filter(
+      time_cut <= Cz_window
+    ) %>%
+    do({model = lm(CO2 ~ time_cut, data=.)    # create your model
+    data.frame(tidy(model),              # get coefficient info
+               glance(model))}) %>%          # get model info
+    pivot_wider(id_cols = fluxID, names_from = "term", values_from = "estimate") %>% 
+    rename(
+      Cz = "(Intercept)",
+      slope_Cz = time_cut) %>%
+    select(fluxID, Cz, slope_Cz) %>%
+    ungroup()
+  
+  tz_df <- cut_CO2_df %>% 
+    # left_join(Cm_df) %>% 
+    left_join(Cz_df) %>% 
+    group_by(fluxID) %>% 
+    # mutate(
+    #   time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+    #   time = as.numeric(time)
+    # ) %>% 
+    filter(
+      time_cut > Cz_window
+    ) %>% 
+    mutate(
+      Cd = abs(CO2-Cz),
+      tz_est = min(time_cut[Cd == min(Cd)])
+    ) %>% 
+    ungroup() %>% 
+    select(fluxID, tz_est) %>% 
+    distinct()
+  
+  a_df <- cut_CO2_df %>% 
+    group_by(fluxID) %>% 
+    filter(
+      datetime >= end_window - t_window
+    ) %>% 
+    do({model = lm(CO2 ~ time_cut, data=.)    # create your model
+    data.frame(tidy(model),              # get coefficient info
+               glance(model))}) %>%          # get model info
+    pivot_wider(id_cols = fluxID, names_from = "term", values_from = "estimate") %>% 
+    rename(
+      a_est = time_cut
+      ) %>% 
+    select(fluxID, a_est) %>% 
+    ungroup()
+  
+  Ct_df <- cut_CO2_df %>% 
+    left_join(tz_df) %>% 
+    group_by(fluxID) %>% 
+    mutate(
+      Ct = CO2[time_cut == tz_est - Cz_window]
+    ) %>% 
+    ungroup() %>% 
+    select(fluxID, Ct) %>% 
+    distinct()
+  
+  estimates_df <- left_join(Cm_df, Cz_df) %>% 
+    left_join(tz_df) %>% 
+    left_join(a_df) %>% 
+    left_join(Ct_df) %>% 
+    mutate(
+      b_est = log((Ct - Cm_est + a_est * Cz_window)/(Cz - Cm_est)) * (1/Cz_window)
+    )
+  
+  myfn <- function(data, par) {
+    with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
+  }
+  
+  myoptim <- function(Cm_est, a_est, b_est, tz_est, data) {
+    results <- optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, data = data)
+    return(results$par)
+  }
+  
+  # problem: need to loop the optim on each group of fluxID with specific par per group. MAybe I need to do a for loop
+  
+  fitting_par <- cut_CO2_df %>% 
+    left_join(estimates_df) %>% 
+    group_by(fluxID) %>%
+    # filter(fluxID == 111) %>%
+    summarize(
+      # Cm = map(., optim(par = c(estimates_df$Cm_est[fluxID], estimates_df$a_est[fluxID], estimates_df$b_est[fluxID], estimates_df$tz_est[fluxID]), fn = myfn, data = .))$par[1],
+      # a = apply(., c(1,2,3,4), optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, data = .))$par[2],
+      # b = mean(CO2)
+      # b = apply(myoptim(Cm_est, a_est, b_est, tz_est, data = CO2))
+      ID = fluxID,
+      b = optim(par = c(estimates_df$Cm_est[estimates_df$fluxID==ID], estimates_df$a_est[estimates_df$fluxID==ID], estimates_df$b_est[estimates_df$fluxID==ID], estimates_df$tz_est[estimates_df$fluxID==ID]), fn = myfn, data = .)$par[3]
+      # tz = optim(par = c(.$Cm_est, .$a_est, .$b_est, .$tz_est), fn = myfn, data = .)$par[4],
+      # slope_tz = a + b * (Cm - Cz)
+    ) %>%
+    ungroup() %>% 
+    distinct()
+    filter(fluxID, Cm, a, b, tz, slope_tz, Cz)
+  
+  CO2_fitting <- CO2_df %>% 
+    left_join(fitting_par) %>% 
+    mutate(
+      time_corr = difftime(start_window[1],datetime[1] , units = "secs"), # need a correction because in this df time is starting at beginning, not at cut
+      time_corr = as.double(time_corr),
+      fit = Cm + a * (time- tz - time_corr) + (Cz - Cm) * exp(- b * (time- tz - time_corr)),
+      fit_slope = slope_tz * (time - time_corr) + Cz - slope_tz * tz
+    )
+    
+  return(CO2_fitting)
+}
+  
+  
+  
+# function to graph specific fluxID or RMSE above a certain threshold
+  
+# function calculating fluxes for each fluxID and providiing RMSE
