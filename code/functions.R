@@ -396,7 +396,7 @@ fitting.flux <- function(data,
   # }
   
   myfn <- function(time, CO2, par, Cz) {
-    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2))
+    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
   }
   
   
@@ -472,22 +472,23 @@ fitting.flux <- function(data,
     #   par = c(Cm_est, a_est, b_est, tz_est)
       
       # I would like to do something more resilient to avoid stopping everything if there is a problem with optim. Maybe tryCatch can be an idea
-      results = list(optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)),
+      results = list(optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
       Cm = results$par[1],
       a = results$par[2],
       b = results$par[3],
-      tz = results$par[4],
+      tz = exp(results$par[4]),
       # a = optim(par = c(Cm_est = 526.39, a_est = -0.263391, b_est = -0.000181677, tz_est = 29), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = 557)$par[2]
       # Cm = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[1],
       # a = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[2],
       # b = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[3],
       # tz = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[4],
-      slope_tz = a + b * (Cm - Cz)
+      slope_tz = a + b * (Cm - Cz),
+      RMSE = myfn(CO2 = data$CO2, time = data$time_cut, Cz = Cz, par = c(Cm, a, b, log(tz)))
       # test = sum(data$time_cut)
       # a = apply(., c(1,2,3,4), optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, data = .))$par[2]
     ) %>% 
     ungroup() %>% 
-    select(fluxID, Cm, a, b, tz, slope_tz, Cz, results)
+    select(fluxID, Cm, a, b, tz, slope_tz, Cz, results, RMSE)
     
     # distinct()
     
@@ -515,3 +516,53 @@ fitting.flux <- function(data,
 # function to graph specific fluxID or RMSE above a certain threshold
   
 # function calculating fluxes for each fluxID and providiing RMSE
+
+flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environmental data
+                            chamber_volume = 24.5, # volume of the flux chamber in L, default for Three-D chamber (25x24.5x40cm)
+                            tube_volume = 0.075, # volume of the tubing in L, default for summer 2020 setup
+                            atm_pressure = 1, # atmoshperic pressure, assumed 1 atm
+                            plot_area = 0.0625 # area of the plot in m^2, default for Three-D
+)
+{
+  R = 0.082057 #gas constant, in L*atm*K^(-1)*mol^(-1)
+  vol = chamber_volume + tube_volume
+  
+  slopes <- co2conc %>% 
+    select(fluxID, slope_tz, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz) %>% 
+    distinct()
+  
+  means <- co2conc %>% 
+    group_by(fluxID) %>% 
+    summarise(
+      PARavg = mean(PAR, na.rm = TRUE), #mean value of PAR for each flux
+      temp_airavg = mean(temp_air, na.rm = TRUE)  #mean value of temp_air for each flux
+      + 273.15, #transforming in kelvin for calculation
+      temp_soilavg = mean(temp_soil, na.rm = TRUE) #mean value of temp_soil for each flux
+    ) %>% 
+    ungroup()
+  
+  fluxes_final <- left_join(slopes, means, by = "fluxID") %>% 
+    # left_join(
+    #   co2conc,
+    #   by = "fluxID"
+    # ) %>% 
+    select(fluxID, slope_tz, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz) %>% 
+    distinct() %>% 
+    rename(
+      datetime = start_window
+    ) %>% 
+    mutate(
+      flux = (slope_tz * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
+      *3600 #secs to hours
+      /1000 #micromol to mmol
+      # PARavg = case_when(
+      #   type == "ER" ~ NA_real_,
+      #   type == "NEE" ~ PARavg
+      # )
+    ) %>% #flux is now in mmol/m^2/h, which is more common
+    arrange(datetime) %>% 
+    select(!c(slope_tz, temp_airavg))
+  
+  return(fluxes_final)
+  
+}
