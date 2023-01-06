@@ -474,8 +474,11 @@ Ct <- Ct[[1]]
 b <- log((Ct - Cm + a * 10)/(Cz - Cm)) * (1/10)
  
 # we need a new idea to estimate a
-
-
+# 5.26390e+02 -2.63391e-01 -1.81677e-04  2.90000e+01
+Cm <- 5.26390e+02
+a <- -2.63391e-01
+b <- -1.81677e-04
+tz <- 2.90000e+01
 
 
 results <- optim(par = c(Cm, a, b, tz), fn = myfn, data = cut_test_df)
@@ -514,18 +517,76 @@ test_df <- test_df %>%
 source("code/functions.R")
 
 
-test_df <- fitting.flux(co2_fluxes_vikesland)
+slopes_zhao18 <- co2_fluxes_vikesland %>% 
+  # filter(
+  #   fluxID %in% c(106)
+  # ) %>% 
+  fitting.flux()
 
-test_df %>% 
+slopes_zhao18 %>% 
+  filter(
+    fluxID %in% c(197)
+  ) %>% 
 ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut)) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope), linetype = "dashed") +
-  geom_vline(xintercept = (results$par[4] + test_df$start_window[1]), linetype = "dotted") +
-  ylim(min(test_df$CO2), max(test_df$CO2))
+  geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red"
+  )) +
+  # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+  ylim(400,1000) +
+  facet_wrap(~fluxID, scales = "free")
 
 results$par #problem: tz is calculated on the cut df, so it is not at the right place in the plot
 
+# calculating the new fluxes
+
+fluxes_zhao18 <- slopes_zhao18 %>% 
+  flux.calc.zhao18()%>% 
+  rename(
+    flux_zhao18 = flux
+  ) %>% 
+  group_by(turfID, type) %>% 
+  arrange(datetime) %>% 
+  mutate(
+    ID = row_number(datetime)
+  )
+
+# time to compare!
+
+get_file(node = "fcbw4",
+         file = "PFTC6_24h-cflux_vikesland_2022.csv",
+         path = "clean_data",
+         remote_path = "c_flux_data")
+
+cflux_vikesland_old <- read_csv("clean_data/PFTC6_24h-cflux_vikesland_2022.csv", col_types = "ffdddTtd") %>% 
+  filter(
+    type != "GPP"
+  ) %>% 
+  group_by(turfID, type) %>% 
+  arrange(datetime) %>% 
+  mutate(
+    ID = row_number(datetime)
+  )
+
+cflux_vikesland <- full_join(cflux_vikesland_old, fluxes_zhao18, by = c("ID", "type", "turfID")) %>% 
+  mutate(
+    difference = flux_zhao18 - flux
+  )
+
+cflux_vikesland %>% 
+  ggplot(aes(flux, flux_zhao18)) +
+  # theme(aspect.ratio=1) +
+  # coord_fixed() +
+  # ylim(-25,75) +
+  geom_point()
+
+cflux_vikesland %>% 
+  ggplot(aes(b, difference)) +
+  geom_point()
 
 summary(model)
 
