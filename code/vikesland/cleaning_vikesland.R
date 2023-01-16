@@ -525,7 +525,7 @@ slopes_zhao18 <- co2_fluxes_vikesland %>%
 
 slopes_zhao18 %>% 
   filter(
-    fluxID %in% c(197)
+    fluxID %in% c(157)
   ) %>% 
 ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut)) +
@@ -537,7 +537,7 @@ ggplot(aes(datetime)) +
     "cut" = "red"
   )) +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
-  ylim(400,1000) +
+  # ylim(400,1000) +
   facet_wrap(~fluxID, scales = "free")
 
 results$par #problem: tz is calculated on the cut df, so it is not at the right place in the plot

@@ -227,11 +227,11 @@ fitting.flux <- function(data,
                          Cz_window = 15, # window used to calculate Cz, at the beginning of cut window
                          b_window = 10){ # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
   
-  # data <- co2_fluxes_vikesland %>% # this sis just to test the function with data sample
-  #   filter(
-  #     fluxID %in% c(110:120)
-  #   )
-  
+  data <- co2_fluxes_vikesland %>% # this sis just to test the function with data sample
+    filter(
+      fluxID %in% c(106,111,128,14)
+    )
+
   CO2_df <- data %>% 
     group_by(fluxID) %>% 
     mutate(
@@ -308,7 +308,7 @@ fitting.flux <- function(data,
   Cm_df <- left_join(Cm_df, Cm_slope) %>% 
     mutate(
       Cm_est = case_when(
-        slope_Cm < 0 ~ Cmin, 
+        slope_Cm < 0 ~ Cmin, #Cm is the maximum mixing point, which is when the limit of C(t) when t tends to infinite.
         slope_Cm > 0 ~ Cmax 
       ),
       tm = case_when(
@@ -395,8 +395,12 @@ fitting.flux <- function(data,
   #   with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
   # }
   
+  # myfn <- function(time, CO2, par, Cz) {
+  #   sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
+  # }
+  
   myfn <- function(time, CO2, par, Cz) {
-    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
+    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(exp(par[3])*(time-exp(par[4])))-CO2)^2))
   }
   
   
@@ -472,11 +476,12 @@ fitting.flux <- function(data,
     #   par = c(Cm_est, a_est, b_est, tz_est)
       
       # I would like to do something more resilient to avoid stopping everything if there is a problem with optim. Maybe tryCatch can be an idea
-      results = list(optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
+      results = list(optim(par = c(Cm_est, a_est, log(abs(b_est)), log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
       Cm = results$par[1],
       a = results$par[2],
-      b = results$par[3],
-      tz = exp(results$par[4]),
+      b = -exp(results$par[3]), #we force be to be negative
+      #need to find the fit with the b closest to 0 (negative or positive)
+      tz = exp(results$par[4]), #we force tz to be positive
       # a = optim(par = c(Cm_est = 526.39, a_est = -0.263391, b_est = -0.000181677, tz_est = 29), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = 557)$par[2]
       # Cm = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[1],
       # a = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[2],
@@ -487,8 +492,8 @@ fitting.flux <- function(data,
       # test = sum(data$time_cut)
       # a = apply(., c(1,2,3,4), optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, data = .))$par[2]
     ) %>% 
-    ungroup() %>% 
-    select(fluxID, Cm, a, b, tz, slope_tz, Cz, results, RMSE)
+    ungroup()
+    # select(fluxID, Cm, a, b, tz, slope_tz, Cz, results, RMSE)
     
     # distinct()
     
@@ -503,8 +508,10 @@ fitting.flux <- function(data,
     mutate(
       time_corr = difftime(start_window, start, units = "secs"), # need a correction because in this df time is starting at beginning, not at cut
       time_corr = as.double(time_corr),
-      fit = Cm + a * (time- tz - time_corr) + (Cz - Cm) * exp(- b * (time- tz - time_corr)),
+      fit = Cm + a * (time - tz - time_corr) + (Cz - Cm) * exp(- b * (time - tz - time_corr)),
       fit_slope = slope_tz * (time - time_corr) + Cz - slope_tz * tz,
+      # fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+      # fit_slope = (a_est + b_est * (Cm_est - Cz) ) * (time - time_corr) + Cz - slope_tz * tz_est,
       start_z = start_window + tz # this is for graph purpose, to have a vertical line showing where tz is for each flux
     )
     
