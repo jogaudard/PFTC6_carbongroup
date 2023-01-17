@@ -85,7 +85,7 @@ co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
     cut = case_when(
       datetime <= start_window | datetime >= end_window ~ "cut",
       # fluxID ==  & datetime %in%  ~ "cut",
-      fluxID == 113 ~ "cut", #starts at 900ppm
+      fluxID == 113 ~ "cut", #starts at 900ppm 
       fluxID == 185 ~ "cut", #starts at 900ppm
       fluxID == 118 ~ "cut", #starts at 600ppm
       fluxID == 133 ~ "cut", #starts at 600ppm
@@ -520,12 +520,15 @@ source("code/functions.R")
 slopes_zhao18 <- co2_fluxes_vikesland %>% 
   # filter(
   #   fluxID %in% c(106)
-  # ) %>% 
-  fitting.flux()
+  # ) %>%
+  fitting.flux(
+    weird_fluxesID = c(193, 113, 185, 118, 133, 134),
+    c = 1
+  )
 
 slopes_zhao18 %>% 
   filter(
-    fluxID %in% c(157)
+    fluxID %in% c(189)
   ) %>% 
 ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut)) +
@@ -537,8 +540,26 @@ ggplot(aes(datetime)) +
     "cut" = "red"
   )) +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
-  # ylim(400,1000) +
+  # ylim(480,520) +
   facet_wrap(~fluxID, scales = "free")
+
+CO2_fitting %>% 
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2, color = cut)) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red"
+  )) +
+  # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+  # ylim(400,700) +
+  facet_wrap(~fluxID, scales = "free")
+
+slopes_zhao18 %>% 
+  ggplot(aes(b, slope_tz)) +
+  geom_point()
 
 results$par #problem: tz is calculated on the cut df, so it is not at the right place in the plot
 
@@ -574,19 +595,24 @@ cflux_vikesland_old <- read_csv("clean_data/PFTC6_24h-cflux_vikesland_2022.csv",
 
 cflux_vikesland <- full_join(cflux_vikesland_old, fluxes_zhao18, by = c("ID", "type", "turfID")) %>% 
   mutate(
-    difference = flux_zhao18 - flux
+    difference = abs(flux_zhao18 - flux)
   )
 
 cflux_vikesland %>% 
-  ggplot(aes(flux, flux_zhao18)) +
+  ggplot(aes(x = flux, y = flux_zhao18, label = fluxID)) +
   # theme(aspect.ratio=1) +
   # coord_fixed() +
   # ylim(-25,75) +
-  geom_point()
+  geom_point() +
+  geom_text(hjust=-1,vjust=1)
+  
 
 cflux_vikesland %>% 
-  ggplot(aes(b, difference)) +
-  geom_point()
+  ggplot(aes(RMSE, difference, label = fluxID)) +
+  geom_point() +
+  geom_text(hjust=-1,vjust=1) 
+  xlim(0, 250)
+
 
 summary(model)
 
