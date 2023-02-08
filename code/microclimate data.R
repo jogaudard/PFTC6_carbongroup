@@ -1,7 +1,4 @@
 #Soil moisture function ----
-# NOTE: As of 2022.12.02 09:25 PST this script is ONLY for the PFTC6 C-flux microclimate data.
-# We also need to add in the data from Three-D.
-
 source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/Climate/soilmoisture_correction.R")
 
 # Fetch the data -----
