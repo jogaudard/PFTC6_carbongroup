@@ -225,13 +225,13 @@ fitting.flux <- function(data,
                          weird_fluxesID = NA, # a vector of fluxes to discard because they are obviously wrong
                          t_window = 20, # enlarge focus window before and after tmin and tmax
                          Cz_window = 15, # window used to calculate Cz, at the beginning of cut window
-                         b_window = 10, # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
-                         c = 3 # coefficient to define the interval around estimates to optimize function
+                         b_window = 10 # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
+                         # c = 3 # coefficient to define the interval around estimates to optimize function
                          ){ 
   
   # data <- co2_fluxes_vikesland %>% # this sis just to test the function with data sample
   #   filter(
-  #     fluxID %in% c(106,111,128,14)
+  #     fluxID %in% c(99)
   #   )
 
   CO2_df <- data %>% 
@@ -263,7 +263,9 @@ fitting.flux <- function(data,
         fluxID %in% weird_fluxesID ~ "cut",
         TRUE ~ "keep"
       ),
-      cut = as_factor(cut)
+      cut = as_factor(cut),
+      time_corr = difftime(start_window, start, units = "secs"), # need a correction because in this df time is starting at beginning, not at cut
+      time_corr = as.double(time_corr)
     ) %>% 
     ungroup()
   
@@ -375,11 +377,11 @@ fitting.flux <- function(data,
     select(fluxID, a_est) %>% 
     ungroup()
   
-  Ct_df <- cut_CO2_df %>% 
+  Ct_df <- CO2_df %>% 
     left_join(tz_df) %>% 
     group_by(fluxID) %>% 
     mutate(
-      Ct = CO2[time_cut == tz_est - Cz_window]
+      Ct = CO2[time == tz_est + time_corr - Cz_window]
     ) %>% 
     ungroup() %>% 
     select(fluxID, Ct) %>% 
@@ -397,9 +399,9 @@ fitting.flux <- function(data,
   #   with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
   # }
   
-  # myfn <- function(time, CO2, par, Cz) {
-  #   sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
-  # }
+  myfn <- function(time, CO2, par, Cz) {
+    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
+  }
   
   myfn1 <- function(time, CO2, Cz, Cm, b, tz) {
     sqrt((1/length(time)) * sum((Cm+(Cz-Cm)*exp(-b*(time-tz))-CO2)^2))
@@ -484,27 +486,27 @@ fitting.flux <- function(data,
     #   par = c(Cm_est, a_est, b_est, tz_est)
       
       # I would like to do something more resilient to avoid stopping everything if there is a problem with optim. Maybe tryCatch can be an idea
-      # results = list(optim(par = c(Cm_est, a_est, log(abs(b_est)), log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
-      # Cm = results$par[1],
-      # a = results$par[2],
-      # b = -exp(results$par[3]), #we force be to be negative
-      # #need to find the fit with the b closest to 0 (negative or positive)
-      # tz = exp(results$par[4]), #we force tz to be positive
-      b = optimize(myfn1, c(-c * b_est, (c+1) * b_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, Cm = Cm_est, tz = tz_est)$minimum, #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
+      results = list(optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
+      Cm = results$par[1],
+      a = results$par[2],
+      b = results$par[3], 
+      #need to find the fit with the b closest to 0 (negative or positive)
+      tz = exp(results$par[4]), #we force tz to be positive
       # b = bmin$minimum
       # Cm = Cm_est,
       # b = results1$minimum[1],
       # tz = tz_est,
-      Cm = optimize(myfn1, c(-c * Cm_est, (c+1) * Cm_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, tz = tz_est, b = b)$minimum,
-      tz = optimize(myfn1, c(0, (c+1) * tz_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, Cm = Cm, b = b)$minimum,
-      a = optimize(myfn2, c(-c * a_est, (c+1) * a_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, Cm = Cm, b = b, tz = tz)$minimum,
+      # Cm = optimize(myfn1, c(0, (c+1) * Cm_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, tz = tz_est, b = b_est)$minimum,
+      # tz = optimize(myfn1, c(tz_est, (c+1) * tz_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, Cm = Cm, b = b_est)$minimum,
+      # b = optimize(myfn1, c(-10, 10), CO2 = data$CO2, time = data$time_cut, Cz = Cz, Cm = Cm, tz = tz)$minimum, #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
+      # a = optimize(myfn2, c(-c * a_est, (c+1) * a_est), CO2 = data$CO2, time = data$time_cut, Cz = Cz, Cm = Cm, b = b, tz = tz)$minimum,
       # a = results2$minimum[1],
       
       # a = optim(par = c(Cm_est = 526.39, a_est = -0.263391, b_est = -0.000181677, tz_est = 29), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = 557)$par[2]
-      # Cm = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[1],
-      # a = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[2],
-      # b = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[3],
-      # tz = optim(par = c(Cm_est, a_est, b_est, tz_est), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[4],
+      # Cm = optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[1],
+      # a = optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[2],
+      # b = optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[3],
+      # tz = optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)$par[4],
       slope_tz = a + b * (Cm - Cz),
       # RMSE = myfn(CO2 = data$CO2, time = data$time_cut, Cz = Cz, par = c(Cm, a, b, tz))
       # RMSE = myfn2(time = data$time_cut, CO2 = data$CO2, a = a, b = b, Cm = Cm, Cz = Cz, tz = tz)
@@ -525,8 +527,8 @@ fitting.flux <- function(data,
   CO2_fitting <- CO2_df %>% 
     left_join(fitting_par) %>% 
     mutate(
-      time_corr = difftime(start_window, start, units = "secs"), # need a correction because in this df time is starting at beginning, not at cut
-      time_corr = as.double(time_corr),
+      # time_corr = difftime(start_window, start, units = "secs"), # need a correction because in this df time is starting at beginning, not at cut
+      # time_corr = as.double(time_corr),
       fit = Cm + a * (time - tz - time_corr) + (Cz - Cm) * exp(- b * (time - tz - time_corr)),
       fit_slope = slope_tz * (time - time_corr) + Cz - slope_tz * tz,
       # fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
@@ -537,9 +539,30 @@ fitting.flux <- function(data,
   group_by(fluxID, Cm, a, b, tz, Cz) %>% 
     # nest() %>% 
     mutate(
-      RMSE = myfn2(time = time, CO2 = CO2, a = a, b = b, Cm = Cm, Cz = Cz, tz = tz)
+      RMSE = myfn2(time = time, CO2 = CO2, a = a, b = b, Cm = Cm, Cz = Cz, tz = tz - time_corr)
     ) %>% 
     ungroup
+  
+  r2_general <-function(preds,actual){ 
+    return(1- sum((preds - actual) ^ 2)/sum((actual - mean(actual))^2))
+  }
+  
+  model_fit <- CO2_fitting %>%
+    # filter(
+    #   cut == "keep"
+    # ) %>% 
+    select(fluxID, time, CO2, fit, RMSE) %>% 
+    group_by(fluxID) %>% 
+    nest() %>% 
+    rowwise() %>% 
+    summarize(
+      r.squared = r2_general(data$fit, data$CO2),
+      norm_RMSE = data$RMSE / (max(data$CO2) - min(data$CO2))
+    ) %>% 
+    ungroup()
+  
+  CO2_fitting <- CO2_fitting %>% 
+    left_join(model_fit)
     
   return(CO2_fitting)
 }

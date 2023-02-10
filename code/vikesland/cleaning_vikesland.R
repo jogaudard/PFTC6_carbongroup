@@ -59,45 +59,45 @@ co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, st
 
 # adjusting the time window with manual cuts ------------------------------------------------------
 
-co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
-  group_by(fluxID) %>% 
-  mutate(
-    # time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    # time = as.double(time),
-    tmax = max(datetime[CO2 == max(CO2)]),
-    tmin = min(datetime[CO2 == min(CO2)]),
-    start_cut = case_when(
-      tmax > tmin ~ tmin - 20,
-      tmin > tmax ~ tmax - 20
-    ),
-    end_cut = case_when(
-      tmax < tmin ~ tmin + 20,
-      tmin < tmax ~ tmax + 20
-    ),
-    start_window = case_when(
-      start_cut > start_window ~ start_cut,
-      TRUE ~ start_window
-    ),
-    end_window = case_when(
-      end_cut < end_window ~ end_cut,
-      TRUE ~ end_window
-    ),
-    cut = case_when(
-      datetime <= start_window | datetime >= end_window ~ "cut",
-      # fluxID ==  & datetime %in%  ~ "cut",
-      fluxID == 113 ~ "cut", #starts at 900ppm 
-      fluxID == 185 ~ "cut", #starts at 900ppm
-      fluxID == 118 ~ "cut", #starts at 600ppm
-      fluxID == 133 ~ "cut", #starts at 600ppm
-      fluxID == 134 ~ "cut", #starts at 600ppm
-      TRUE ~ "keep"
-    ),
-    cut = as_factor(cut)
-  ) %>% 
-  ungroup()
-
-cut_co2_fluxes_vikesland <- co2_fluxes_vikesland %>% 
-  filter(cut == "keep")
+# co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
+#   group_by(fluxID) %>% 
+#   mutate(
+#     # time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     # time = as.double(time),
+#     tmax = max(datetime[CO2 == max(CO2)]),
+#     tmin = min(datetime[CO2 == min(CO2)]),
+#     start_cut = case_when(
+#       tmax > tmin ~ tmin - 20,
+#       tmin > tmax ~ tmax - 20
+#     ),
+#     end_cut = case_when(
+#       tmax < tmin ~ tmin + 20,
+#       tmin < tmax ~ tmax + 20
+#     ),
+#     start_window = case_when(
+#       start_cut > start_window ~ start_cut,
+#       TRUE ~ start_window
+#     ),
+#     end_window = case_when(
+#       end_cut < end_window ~ end_cut,
+#       TRUE ~ end_window
+#     ),
+#     cut = case_when(
+#       datetime <= start_window | datetime >= end_window ~ "cut",
+#       # fluxID ==  & datetime %in%  ~ "cut",
+#       fluxID == 113 ~ "cut", #starts at 900ppm 
+#       fluxID == 185 ~ "cut", #starts at 900ppm
+#       fluxID == 118 ~ "cut", #starts at 600ppm
+#       fluxID == 133 ~ "cut", #starts at 600ppm
+#       fluxID == 134 ~ "cut", #starts at 600ppm
+#       TRUE ~ "keep"
+#     ),
+#     cut = as_factor(cut)
+#   ) %>% 
+#   ungroup()
+# 
+# cut_co2_fluxes_vikesland <- co2_fluxes_vikesland %>% 
+#   filter(cut == "keep")
 
 
 # automatic cutting -------------------------------------------------------
@@ -114,71 +114,71 @@ cut_co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
 
 # finding Cz and tz
 
-Cz_window <- 15
-Cm_window <- 100
-
-
-
-Cm_df <- cut_co2_fluxes_vikesland %>% 
-  # filter(
-  #   cut == "keep"
-  # ) %>% 
-  group_by(fluxID) %>% 
-  distinct(CO2, .keep_all = TRUE) %>% 
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.double(time)
-  ) %>% 
-  # filter(
-  #   time < Cm_window
-  # ) %>% 
-  mutate(
-    Cmax = max(CO2),
-    Cmin = min(CO2),
-    # tmax = case_when(
-    #         CO2 == Cmax ~ time,
-    #         CO2 =! Cmax ~ NA_real_
-    #       ),
-    tmax = time[CO2 == Cmax],
-    tmin = time[CO2 == Cmin]
-  ) %>% 
-  select(fluxID, Cmax, Cmin, tmax, tmin) %>% 
-  ungroup() %>% 
-  distinct(Cmax, Cmin, .keep_all = TRUE)
-
-Cm_slope <- cut_co2_fluxes_vikesland %>% 
-  # filter(
-  #   cut == "keep"
-  # ) %>% 
-  group_by(fluxID) %>% 
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.double(time)
-  ) %>% 
-  # filter(
-  #   time < Cm_window
-  # ) %>% 
-  do({model = lm(CO2 ~ time, data=.)    # create your model
-  data.frame(tidy(model),              # get coefficient info
-             glance(model))}) %>%          # get model info
-  filter(term == "time") %>% 
-  rename(slope = estimate) %>% 
-  select(fluxID, slope) %>% 
-  ungroup()
-
-Cm_df <- left_join(Cm_df, Cm_slope) %>% 
-  mutate(
-    Cm = case_when(
-      slope < 0 ~ Cmin, 
-      slope > 0 ~ Cmax 
-    ),
-    tm = case_when(
-      slope < 0 ~ tmin,
-      slope > 0 ~ tmax
-    )
-  ) %>% 
-  select(fluxID, Cm, tm, slope) %>% 
-  ungroup()
+# Cz_window <- 15
+# Cm_window <- 100
+# 
+# 
+# 
+# Cm_df <- cut_co2_fluxes_vikesland %>% 
+#   # filter(
+#   #   cut == "keep"
+#   # ) %>% 
+#   group_by(fluxID) %>% 
+#   distinct(CO2, .keep_all = TRUE) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time)
+#   ) %>% 
+#   # filter(
+#   #   time < Cm_window
+#   # ) %>% 
+#   mutate(
+#     Cmax = max(CO2),
+#     Cmin = min(CO2),
+#     # tmax = case_when(
+#     #         CO2 == Cmax ~ time,
+#     #         CO2 =! Cmax ~ NA_real_
+#     #       ),
+#     tmax = time[CO2 == Cmax],
+#     tmin = time[CO2 == Cmin]
+#   ) %>% 
+#   select(fluxID, Cmax, Cmin, tmax, tmin) %>% 
+#   ungroup() %>% 
+#   distinct(Cmax, Cmin, .keep_all = TRUE)
+# 
+# Cm_slope <- cut_co2_fluxes_vikesland %>% 
+#   # filter(
+#   #   cut == "keep"
+#   # ) %>% 
+#   group_by(fluxID) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time)
+#   ) %>% 
+#   # filter(
+#   #   time < Cm_window
+#   # ) %>% 
+#   do({model = lm(CO2 ~ time, data=.)    # create your model
+#   data.frame(tidy(model),              # get coefficient info
+#              glance(model))}) %>%          # get model info
+#   filter(term == "time") %>% 
+#   rename(slope = estimate) %>% 
+#   select(fluxID, slope) %>% 
+#   ungroup()
+# 
+# Cm_df <- left_join(Cm_df, Cm_slope) %>% 
+#   mutate(
+#     Cm = case_when(
+#       slope < 0 ~ Cmin, 
+#       slope > 0 ~ Cmax 
+#     ),
+#     tm = case_when(
+#       slope < 0 ~ tmin,
+#       slope > 0 ~ tmax
+#     )
+#   ) %>% 
+#   select(fluxID, Cm, tm, slope) %>% 
+#   ungroup()
 
 # tz_df <- co2_fluxes_vikesland %>% 
 #   left_join(Cm_df) %>% 
@@ -223,29 +223,29 @@ Cm_df <- left_join(Cm_df, Cm_slope) %>%
 #   select(fluxID, Cz) %>% 
 #   ungroup()
 
-Cz_df <- cut_co2_fluxes_vikesland %>%
-  # filter(
-  #   cut == "keep"
-  # ) %>%
-  group_by(fluxID) %>%
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.double(time)
-  ) %>%
-  select(fluxID, time, CO2) %>%
-  filter(
-    time < Cz_window
-  ) %>%
-  do({model = lm(CO2 ~ time, data=.)    # create your model
-  data.frame(tidy(model),              # get coefficient info
-             glance(model))}) %>%          # get model info
-  pivot_wider(id_cols = fluxID, names_from = "term", values_from = "estimate") %>% 
-  # filter(term == "(Intercept)") %>%
-  rename(
-    Cz = "(Intercept)",
-    slope_Cz = time) %>%
-  select(fluxID, Cz, slope_Cz) %>%
-  ungroup()
+# Cz_df <- cut_co2_fluxes_vikesland %>%
+#   # filter(
+#   #   cut == "keep"
+#   # ) %>%
+#   group_by(fluxID) %>%
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.double(time)
+#   ) %>%
+#   select(fluxID, time, CO2) %>%
+#   filter(
+#     time < Cz_window
+#   ) %>%
+#   do({model = lm(CO2 ~ time, data=.)    # create your model
+#   data.frame(tidy(model),              # get coefficient info
+#              glance(model))}) %>%          # get model info
+#   pivot_wider(id_cols = fluxID, names_from = "term", values_from = "estimate") %>% 
+#   # filter(term == "(Intercept)") %>%
+#   rename(
+#     Cz = "(Intercept)",
+#     slope_Cz = time) %>%
+#   select(fluxID, Cz, slope_Cz) %>%
+#   ungroup()
 
 # Cz_df <- co2_fluxes_vikesland %>% 
 #   left_join(Cm_df) %>%
@@ -298,43 +298,43 @@ Cz_df <- cut_co2_fluxes_vikesland %>%
 # try with fluxID 111 -----------------------------------------------------
 
 
-test_df <- co2_fluxes_vikesland %>% 
-  filter(
-    # fluxID == 157
-    fluxID == 110
-    # & cut == "keep"
-    ) %>%
-  left_join(Cm_df) %>% 
-  left_join(Cz_df) %>% 
-  # left_join(tz_df) %>% 
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.numeric(time)
-    # time = time - tm
-    # time = time - tz,
-    # cut = case_when(
-    #   time >= tz ~ "keep",
-    #   time < tz ~ "cut"
-    # )
-  )
-  # filter(
-  #   time >= 0
-  #   & time <= 120
-  # ) %>%
-  # filter(
-  #   time >= 25
-  # ) %>%
-  # select(datetime, time, CO2, Cz, Cm, tm, slope_Cz, slope, cut) 
-  # filter(cut == "keep")
-
-cut_test_df <- test_df %>% 
-  filter(
-    cut == "keep"
-  ) %>% 
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.numeric(time)
-  )
+# test_df <- co2_fluxes_vikesland %>% 
+#   filter(
+#     # fluxID == 157
+#     fluxID == 110
+#     # & cut == "keep"
+#     ) %>%
+#   left_join(Cm_df) %>% 
+#   left_join(Cz_df) %>% 
+#   # left_join(tz_df) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.numeric(time)
+#     # time = time - tm
+#     # time = time - tz,
+#     # cut = case_when(
+#     #   time >= tz ~ "keep",
+#     #   time < tz ~ "cut"
+#     # )
+#   )
+#   # filter(
+#   #   time >= 0
+#   #   & time <= 120
+#   # ) %>%
+#   # filter(
+#   #   time >= 25
+#   # ) %>%
+#   # select(datetime, time, CO2, Cz, Cm, tm, slope_Cz, slope, cut) 
+#   # filter(cut == "keep")
+# 
+# cut_test_df <- test_df %>% 
+#   filter(
+#     cut == "keep"
+#   ) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.numeric(time)
+#   )
 
 # coef_df <- cut_co2_fluxes_vikesland %>% 
 #   left_join(Cm_df) %>% 
@@ -365,42 +365,42 @@ cut_test_df <- test_df %>%
 #   with(data, sqrt((1/length(time)) * sum((Cm+par[1]*(time-par[2])+(Cz-Cm)*exp(-par[3]*(time-par[2]))-CO2)^2)))
 # }
 
-myfn <- function(data, par) {
-  with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
-}
-
-tz_df <- cut_co2_fluxes_vikesland %>% 
-  # left_join(Cm_df) %>% 
-  left_join(Cz_df) %>% 
-  group_by(fluxID) %>% 
-  mutate(
-    time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
-    time = as.numeric(time)
-  ) %>% 
-  filter(
-    time > Cz_window
-  ) %>% 
-  mutate(
-    Cd = abs(CO2-Cz),
-    tz = min(time[Cd == min(Cd)])
-  ) %>% 
-  ungroup() %>% 
-  select(fluxID, tz) %>% 
-  distinct()
-
 # myfn <- function(data, par) {
-#   with(data, sqrt((1/length(time)) * sum((Cz+par[1]*(time-par[2])+(Cm-Cz)*exp(-par[3]*(time-par[2]))-CO2)^2)))
+#   with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
 # }
-
-# estimation of starting parameters
-
-# Cm can be estimated as the min (negative flux) or max (positive flux) CO2 concentration of the entire flux
-
-Cm <- cut_test_df %>% 
-  select(Cm) %>% 
-  unique()
-
-Cm <- Cm[[1]]
+# 
+# tz_df <- cut_co2_fluxes_vikesland %>% 
+#   # left_join(Cm_df) %>% 
+#   left_join(Cz_df) %>% 
+#   group_by(fluxID) %>% 
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#     time = as.numeric(time)
+#   ) %>% 
+#   filter(
+#     time > Cz_window
+#   ) %>% 
+#   mutate(
+#     Cd = abs(CO2-Cz),
+#     tz = min(time[Cd == min(Cd)])
+#   ) %>% 
+#   ungroup() %>% 
+#   select(fluxID, tz) %>% 
+#   distinct()
+# 
+# # myfn <- function(data, par) {
+# #   with(data, sqrt((1/length(time)) * sum((Cz+par[1]*(time-par[2])+(Cm-Cz)*exp(-par[3]*(time-par[2]))-CO2)^2)))
+# # }
+# 
+# # estimation of starting parameters
+# 
+# # Cm can be estimated as the min (negative flux) or max (positive flux) CO2 concentration of the entire flux
+# 
+# Cm <- cut_test_df %>% 
+#   select(Cm) %>% 
+#   unique()
+# 
+# Cm <- Cm[[1]]
 # Cm <- 530
 
 # a can be estimated as the slope of the linear regression after the last min or max, alternatively the last 60 s of the flux
@@ -429,61 +429,61 @@ Cm <- Cm[[1]]
 
 # tz can be estimated as the time of the closest CO2 measurement to Cz
 
-tz <- cut_test_df %>% 
-  filter(
-    time >= 15 # because we don't want the first "disturbed" 15 seconds that are used to calculade Cz
-  ) %>% 
-  mutate(
-    Cd = abs(CO2 - Cz)
-  ) %>% 
-  filter(
-    Cd == min(Cd)
-  ) %>% 
-  select(time) %>% 
-  rename(tz = time) %>% 
-  unique()
-
-tz <- tz[[1]]
-
-Cz <- test_df$Cz[[1]]
+# tz <- cut_test_df %>% 
+#   filter(
+#     time >= 15 # because we don't want the first "disturbed" 15 seconds that are used to calculade Cz
+#   ) %>% 
+#   mutate(
+#     Cd = abs(CO2 - Cz)
+#   ) %>% 
+#   filter(
+#     Cd == min(Cd)
+#   ) %>% 
+#   select(time) %>% 
+#   rename(tz = time) %>% 
+#   unique()
+# 
+# tz <- tz[[1]]
+# 
+# Cz <- test_df$Cz[[1]]
   
 # I don't have a good idea for b at this stage
 # let's try to estimate b assuming C fits CO2 perfectly at t = tz - 1
 # t = tz -1 was a particular case that did not work. t = tz + 10 is more general
 
-C <- cut_test_df %>%
-  filter(
-    time == max(time)
-  ) %>%
-  select(time, CO2) %>%
-  distinct()
-Ci <- C[[2]]
-ti <- C[[1]]
+# C <- cut_test_df %>%
+#   filter(
+#     time == max(time)
+#   ) %>%
+#   select(time, CO2) %>%
+#   distinct()
+# Ci <- C[[2]]
+# ti <- C[[1]]
+# 
+# a <- (Ci - Cm)/(ti-tz)
+# # a <- 0.2
+# 
+# Ct <- cut_test_df %>% 
+#   filter(
+#     time == tz - 10
+#   ) %>% 
+#   select(CO2)
+# 
+# Ct <- Ct[[1]]
+#   
+# b <- log((Ct - Cm + a * 10)/(Cz - Cm)) * (1/10)
+#  
+# # we need a new idea to estimate a
+# # 5.26390e+02 -2.63391e-01 -1.81677e-04  2.90000e+01
+# Cm <- 5.26390e+02
+# a <- -2.63391e-01
+# b <- -1.81677e-04
+# tz <- 2.90000e+01
 
-a <- (Ci - Cm)/(ti-tz)
-# a <- 0.2
 
-Ct <- cut_test_df %>% 
-  filter(
-    time == tz - 10
-  ) %>% 
-  select(CO2)
-
-Ct <- Ct[[1]]
-  
-b <- log((Ct - Cm + a * 10)/(Cz - Cm)) * (1/10)
- 
-# we need a new idea to estimate a
-# 5.26390e+02 -2.63391e-01 -1.81677e-04  2.90000e+01
-Cm <- 5.26390e+02
-a <- -2.63391e-01
-b <- -1.81677e-04
-tz <- 2.90000e+01
-
-
-results <- optim(par = c(Cm, a, b, tz), fn = myfn, data = cut_test_df)
-
-f <- results$par[2] + results$par[3] * (results$par[1] - Cz) # at t = tz
+# results <- optim(par = c(Cm, a, b, tz), fn = myfn, data = cut_test_df)
+# 
+# f <- results$par[2] + results$par[3] * (results$par[1] - Cz) # at t = tz
 
 # optimise(myfn, c(-100, 200), data = test_df)
   
@@ -495,73 +495,184 @@ f <- results$par[2] + results$par[3] * (results$par[1] - Cz) # at t = tz
 
 
 
-test_df <- test_df %>% 
+# test_df <- test_df %>% 
+#   mutate(
+#     time_corr = difftime(start_window[1],datetime[1] , units = "secs"), # need a correction because in test_df time is starting at beginning, not at cut
+#     time_corr = as.double(time_corr),
+#     # fit = predict(model)
+#     # fit = Cm+results$par[1]*(time-results$par[2])+(Cz-Cm)*exp(-results$par[3]*(time-results$par[2]))
+#     # fit = Cz+results$par[1]*(time-results$par[2])+(Cm-Cz)*exp(-results$par[3]*(time-results$par[2]))
+#     fit = results$par[1]+results$par[2]*(time-results$par[4] - time_corr)+(Cz-results$par[1])*exp(-results$par[3]*(time-results$par[4] - time_corr)),
+#     fit_slope = f * (time - time_corr) + Cz - f * (results$par[4])
+#     # fit = Cm + results$par[1]*(time-results$par[2])
+#     # fit = 561.8 + 0.15*(time - 10) + (562.2-561.8)*exp(-0*(time- 10))
+#     # fit = 518 + 0.15 * (time -10)
+#     # fit = 535 + (562-535)*exp(-0.03*(time- 80))
+#     # fit = 530 + 0.15 * (time - 120) + (535 - 530) * exp(-0.035 * (time -120))
+#     # fit = 545 + 0.15 * (time - 40) + (Cz - 545) * exp(-0.09 * (time - 40))
+#     
+#   )
+
+
+
+# try with flux 106 -------------------------------------------------------
+
+test_106 <- co2_fluxes_vikesland %>% 
+  filter(
+    fluxID == 111
+  ) %>% 
   mutate(
-    time_corr = difftime(start_window[1],datetime[1] , units = "secs"), # need a correction because in test_df time is starting at beginning, not at cut
-    time_corr = as.double(time_corr),
-    # fit = predict(model)
-    # fit = Cm+results$par[1]*(time-results$par[2])+(Cz-Cm)*exp(-results$par[3]*(time-results$par[2]))
-    # fit = Cz+results$par[1]*(time-results$par[2])+(Cm-Cz)*exp(-results$par[3]*(time-results$par[2]))
-    fit = results$par[1]+results$par[2]*(time-results$par[4] - time_corr)+(Cz-results$par[1])*exp(-results$par[3]*(time-results$par[4] - time_corr)),
-    fit_slope = f * (time - time_corr) + Cz - f * (results$par[4])
-    # fit = Cm + results$par[1]*(time-results$par[2])
-    # fit = 561.8 + 0.15*(time - 10) + (562.2-561.8)*exp(-0*(time- 10))
-    # fit = 518 + 0.15 * (time -10)
-    # fit = 535 + (562-535)*exp(-0.03*(time- 80))
-    # fit = 530 + 0.15 * (time - 120) + (535 - 530) * exp(-0.035 * (time -120))
-    # fit = 545 + 0.15 * (time - 40) + (Cz - 545) * exp(-0.09 * (time - 40))
-    
+      time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+      time = as.double(time),
+      time2 = time^2,
+      time3 = time^3,
+      time4 = time^4
+    )
+
+model_106 <- lm(CO2 ~ time4 + time3 + time2 + time, data = test_106)
+
+test_106 <- test_106 %>% 
+  mutate(
+    fit = predict(model_106)
   )
 
-# let's try ze new function
+test_106 %>% 
+  ggplot(aes(time)) +
+  geom_point(aes(y = CO2)) +
+  geom_line(aes(y = fit))
+  # do({model = lm(CO2 ~ time4 + time3 + time2 + time, data=.)    # create your model
+  # data.frame(tidy(model),              # get coefficient info
+  #            glance(model))}) %>%         # get model info
+  # pivot_wider(names_from = "term", values_from = "estimate")
+  # rename(
+  #   a_est = time_cut
+  # ) %>% 
+  # select(fluxID, a_est)
+  
+# let's try ze new function -----------------------------------------------
+
+
 source("code/functions.R")
 
 
 slopes_zhao18 <- co2_fluxes_vikesland %>% 
+  filter(
+    datetime > start_window &
+      datetime < end_window
+  ) %>% 
+  # filter(
+  #   fluxID %in% c(106, 111, 109, 101)
+  # ) %>%
   # filter(
   #   fluxID %in% c(106)
   # ) %>%
   fitting.flux(
-    weird_fluxesID = c(193, 113, 185, 118, 133, 134),
-    c = 1
+    # weird_fluxesID = c(193, 113, 185, 118, 133, 134),
+    # c = 1
   )
+
+# theme_set(theme_grey(base_size = 5))
+
 
 slopes_zhao18 %>% 
   filter(
-    fluxID %in% c(189)
+    fluxID %in% c(1:100)
   ) %>% 
+  # mutate(
+  #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+  # ) %>% 
 ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut)) +
+  geom_point(aes(y = CO2, color = cut), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope), linetype = "dashed") +
-  geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+  # geom_line(aes(y = est_fit), linetype = "dotted") +
+  # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
   scale_color_manual(values = c(
     "keep" = "green",
     "cut" = "red"
   )) +
-  # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
-  # ylim(480,520) +
-  facet_wrap(~fluxID, scales = "free")
-
-CO2_fitting %>% 
-  ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut)) +
-  geom_line(aes(y = fit), linetype = "longdash") +
-  geom_line(aes(y = fit_slope), linetype = "dashed") +
-  geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
-  scale_color_manual(values = c(
-    "keep" = "green",
-    "cut" = "red"
-  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
   # ylim(400,700) +
   facet_wrap(~fluxID, scales = "free")
 
-slopes_zhao18 %>% 
-  ggplot(aes(b, slope_tz)) +
-  geom_point()
+ggsave("vikesland1.png", height = 40, width = 100, units = "cm")
 
-results$par #problem: tz is calculated on the cut df, so it is not at the right place in the plot
+gc()
+
+slopes_zhao18 %>% 
+  filter(
+    fluxID %in% c(101:200)
+  ) %>% 
+  # mutate(
+  #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+  # ) %>% 
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  # geom_line(aes(y = est_fit), linetype = "dotted") +
+  # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red"
+  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+  # ylim(400,700) +
+  facet_wrap(~fluxID, scales = "free")
+
+gc()
+
+ggsave("vikesland2.png", height = 40, width = 100, units = "cm")
+
+slopes_zhao18 %>% 
+  filter(
+    fluxID %in% c(201:300)
+  ) %>% 
+  # mutate(
+  #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+  # ) %>% 
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  # geom_line(aes(y = est_fit), linetype = "dotted") +
+  # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red"
+  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+  # ylim(400,700) +
+  facet_wrap(~fluxID, scales = "free")
+
+ggsave("vikesland3.png", height = 40, width = 100, units = "cm")
+
+# Richard idea: select 50 good ones and 50 bad ones and find a metric that differentiate them
+
+bad_fluxesID <- c(5, 41, 85, 98, 99, 106, 118, 128, 129, 131, 137, 139, 150, 161, 180, 185, 190, 193, 197, 198, 210)
+
+# CO2_fitting %>% 
+#   ggplot(aes(datetime)) +
+#   geom_point(aes(y = CO2, color = cut)) +
+#   geom_line(aes(y = fit), linetype = "longdash") +
+#   geom_line(aes(y = fit_slope), linetype = "dashed") +
+#   geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+#   scale_color_manual(values = c(
+#     "keep" = "green",
+#     "cut" = "red"
+#   )) +
+#   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+#   # ylim(400,700) +
+#   facet_wrap(~fluxID, scales = "free")
+
+# slopes_zhao18 %>% 
+#   ggplot(aes(b, slope_tz)) +
+#   geom_point()
+# 
+# results$par #problem: tz is calculated on the cut df, so it is not at the right place in the plot
 
 # calculating the new fluxes
 
