@@ -400,7 +400,7 @@ fitting.flux <- function(data,
   # }
   
   myfn <- function(time, CO2, par, Cz) {
-    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
+    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-(par[3]/(abs(par[3])+1))*(time-exp(par[4])))-CO2)^2))
   }
   
   myfn1 <- function(time, CO2, Cz, Cm, b, tz) {
@@ -486,10 +486,10 @@ fitting.flux <- function(data,
     #   par = c(Cm_est, a_est, b_est, tz_est)
       
       # I would like to do something more resilient to avoid stopping everything if there is a problem with optim. Maybe tryCatch can be an idea
-      results = list(optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
+      results = list(optim(par = c(Cm_est, a_est, (b_est/(1-abs(b_est))), log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
       Cm = results$par[1],
       a = results$par[2],
-      b = results$par[3], 
+      b = results$par[3]/(abs(results$par[3])+1), 
       #need to find the fit with the b closest to 0 (negative or positive)
       tz = exp(results$par[4]), #we force tz to be positive
       # b = bmin$minimum
@@ -548,9 +548,9 @@ fitting.flux <- function(data,
   }
   
   model_fit <- CO2_fitting %>%
-    # filter(
-    #   cut == "keep"
-    # ) %>% 
+    filter(
+      cut == "keep"
+    ) %>%
     select(fluxID, time, CO2, fit, RMSE) %>% 
     group_by(fluxID) %>% 
     nest() %>% 
