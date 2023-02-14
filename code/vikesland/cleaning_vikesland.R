@@ -573,6 +573,10 @@ slopes_zhao18 <- co2_fluxes_vikesland %>%
     # c = 1
   )
 
+slopes_zhao18_metrics <- slopes_zhao18 %>% 
+  select(fluxID, Cm, a, b, tz, Cz, slope_tz, RMSE, r.squared_slope, threshold_slope, flag, norm_RMSE, r.squared) %>% 
+  distinct()
+
 # theme_set(theme_grey(base_size = 5))
 
 
@@ -598,7 +602,7 @@ ggplot(aes(datetime)) +
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
-  ylim(400,800) +
+  # ylim(400,800) +
   facet_wrap(~fluxID, scales = "free")
 
 ggsave("vikesland1.png", height = 40, width = 100, units = "cm")
@@ -615,12 +619,15 @@ slopes_zhao18 %>%
   ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
-  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   # geom_line(aes(y = est_fit), linetype = "dotted") +
   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
   scale_color_manual(values = c(
     "keep" = "green",
-    "cut" = "red"
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey"
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
@@ -641,12 +648,15 @@ slopes_zhao18 %>%
   ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
-  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   # geom_line(aes(y = est_fit), linetype = "dotted") +
   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
   scale_color_manual(values = c(
     "keep" = "green",
-    "cut" = "red"
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey"
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
@@ -671,16 +681,19 @@ slopes_zhao18 %>%
   ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
-  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   # geom_line(aes(y = est_fit), linetype = "dotted") +
   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
   scale_color_manual(values = c(
     "keep" = "green",
-    "cut" = "red"
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey"
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
-  # ylim(400,800) +
+  ylim(400,800) +
   facet_wrap(~fluxID, scales = "free")
 
 # trying to find a metrics to show the bad ones
@@ -689,7 +702,7 @@ slopes_zhao18_ID <- slopes_zhao18 %>%
   select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope) %>% 
   distinct() %>% 
   mutate(
-    flag = case_when(
+    quality = case_when(
       fluxID %in% bad_fluxesID ~ "bad",
       TRUE ~ "ok"
     )
@@ -698,12 +711,12 @@ slopes_zhao18_ID <- slopes_zhao18 %>%
 
 slopes_zhao18_ID %>% 
   filter(
-    metrics %in% c("r.squared_slope")
+    metrics %in% c("r.squared_slope", "r.squared")
   ) %>%
-  ggplot(aes(x = flag, y = value)) +
+  ggplot(aes(x = quality, y = value)) +
   geom_point() +
   # scale_y_continuous(trans='log10') +
-  # ylim(-0.25, 0.25) +
+  ylim(0, 1) +
   facet_wrap(~metrics, scales = "free", nrow = 1)
 
 slopes_zhao18 %>% 
