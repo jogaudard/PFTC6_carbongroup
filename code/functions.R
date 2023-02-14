@@ -225,8 +225,10 @@ fitting.flux <- function(data,
                          weird_fluxesID = NA, # a vector of fluxes to discard because they are obviously wrong
                          t_window = 20, # enlarge focus window before and after tmin and tmax
                          Cz_window = 15, # window used to calculate Cz, at the beginning of cut window
-                         b_window = 10 # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
+                         b_window = 10, # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
                          # c = 3 # coefficient to define the interval around estimates to optimize function
+                         noise = 10, # noise of the setup in ppm
+                         r.squared_threshold = 0.2 #threshold to discard data based on r.squared of the linear fit at tz over the kept part
                          ){ 
   
   # data <- co2_fluxes_vikesland %>% # this sis just to test the function with data sample
@@ -399,8 +401,12 @@ fitting.flux <- function(data,
   #   with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
   # }
   
+  # myfn <- function(time, CO2, par, Cz) {
+  #   sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-(par[3]/(abs(par[3])+1))*(time-exp(par[4])))-CO2)^2))
+  # }
+  
   myfn <- function(time, CO2, par, Cz) {
-    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-(par[3]/(abs(par[3])+1))*(time-exp(par[4])))-CO2)^2))
+    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
   }
   
   myfn1 <- function(time, CO2, Cz, Cm, b, tz) {
@@ -486,10 +492,10 @@ fitting.flux <- function(data,
     #   par = c(Cm_est, a_est, b_est, tz_est)
       
       # I would like to do something more resilient to avoid stopping everything if there is a problem with optim. Maybe tryCatch can be an idea
-      results = list(optim(par = c(Cm_est, a_est, (b_est/(1-abs(b_est))), log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
+      results = list(optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
       Cm = results$par[1],
       a = results$par[2],
-      b = results$par[3]/(abs(results$par[3])+1), 
+      b = results$par[3],#/(abs(results$par[3])+1), 
       #need to find the fit with the b closest to 0 (negative or positive)
       tz = exp(results$par[4]), #we force tz to be positive
       # b = bmin$minimum
@@ -544,25 +550,43 @@ fitting.flux <- function(data,
     ungroup
   
   r2_general <-function(preds,actual){ 
-    return(1- sum((preds - actual) ^ 2)/sum((actual - mean(actual))^2))
+    return(1 - (sum((preds - actual)^2)/sum((preds - mean(actual))^2)))
   }
   
   model_fit <- CO2_fitting %>%
     filter(
       cut == "keep"
     ) %>%
-    select(fluxID, time, CO2, fit, RMSE) %>% 
+    select(fluxID, time, CO2, fit, RMSE, fit_slope) %>% 
     group_by(fluxID) %>% 
     nest() %>% 
     rowwise() %>% 
     summarize(
       r.squared = r2_general(data$fit, data$CO2),
-      norm_RMSE = data$RMSE / (max(data$CO2) - min(data$CO2))
+      norm_RMSE = data$RMSE / (max(data$CO2) - min(data$CO2)),
+      r.squared_slope = r2_general(data$fit_slope, data$CO2) # this one works to assess quality of data
     ) %>% 
     ungroup()
   
   CO2_fitting <- CO2_fitting %>% 
     left_join(model_fit)
+  
+  # now we need a set of rules to assess if the data should be kept, discarded, or replaced by 0
+  # kept: good fit
+  # discarded: bad fit, but with changes in CO2 concentration over time
+  # replaced by 0: bad fit, and CO2 concentration does not change over time (just noise). How do we assess that?
+  # Maybe we just set a threshold on the slope below which the slope is replaced by 0 if the fit is bad
+  # This threshold can be calculated as the amplitude of the noise of the setup (to be fed into the function, depnding on the setup) divided by the lenght of the measurement
+  
+  CO2_fitting <- CO2_fitting %>% 
+    mutate(
+      threshold_slope = noise / as.double(difftime(end_window, start_window, units = "secs")),
+      flag = case_when(
+        r.squared_slope >= r.squared_threshold ~ "ok",
+        r.squared_slope < r.squared_threshold & slope_tz > threshold_slope ~ "discard",
+        r.squared_slope < r.squared_threshold & slope_tz <= threshold_slope ~ "zero"
+      )
+    )
     
   return(CO2_fitting)
 }

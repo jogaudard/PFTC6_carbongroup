@@ -41,6 +41,8 @@ record_vikesland <- read_csv("raw_data/PFTC6_cflux_field-record_vikesland.csv", 
 
 co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, startcrop = 0, window_length = 180, measurement_length = 180)
 
+#
+
 # cutting Vikesland ------------------------------------------------------
 # cutting_vikesland <- read_csv("raw_data/PFTC6_cflux_cutting_vikesland.csv", na = "", col_types = "dcc")
 # cutting_vikesland <- tibble( #bypass manual cuts
@@ -584,12 +586,15 @@ slopes_zhao18 %>%
 ggplot(aes(datetime)) +
   geom_point(aes(y = CO2, color = cut), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
-  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   # geom_line(aes(y = est_fit), linetype = "dotted") +
   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
   scale_color_manual(values = c(
     "keep" = "green",
-    "cut" = "red"
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey"
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
@@ -681,7 +686,7 @@ slopes_zhao18 %>%
 # trying to find a metrics to show the bad ones
 
 slopes_zhao18_ID <- slopes_zhao18 %>% 
-  select(b_est, fluxID, b, Cm, RMSE, r.squared, norm_RMSE) %>% 
+  select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope) %>% 
   distinct() %>% 
   mutate(
     flag = case_when(
@@ -689,17 +694,39 @@ slopes_zhao18_ID <- slopes_zhao18 %>%
       TRUE ~ "ok"
     )
   ) %>% 
-  pivot_longer(cols = c(b_est, b, Cm, RMSE, r.squared, norm_RMSE), names_to = "metrics", values_to = "value")
+  pivot_longer(cols = c(a, a_est, b_est, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope), names_to = "metrics", values_to = "value")
 
 slopes_zhao18_ID %>% 
   filter(
-    metrics %in% c("b", "b_est")
+    metrics %in% c("r.squared_slope")
   ) %>%
   ggplot(aes(x = flag, y = value)) +
   geom_point() +
   # scale_y_continuous(trans='log10') +
   # ylim(-0.25, 0.25) +
   facet_wrap(~metrics, scales = "free", nrow = 1)
+
+slopes_zhao18 %>% 
+  filter(
+    fluxID %in% c(164,130)
+  ) %>% 
+  # mutate(
+  #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+  # ) %>% 
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope), linetype = "dashed") +
+  # geom_line(aes(y = est_fit), linetype = "dotted") +
+  # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red"
+  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+  # ylim(400,700) +
+  facet_wrap(~fluxID, scales = "free")
 
 # CO2_fitting %>% 
 #   ggplot(aes(datetime)) +
