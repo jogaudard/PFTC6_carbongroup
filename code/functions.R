@@ -228,13 +228,18 @@ fitting.flux <- function(data,
                          b_window = 10, # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
                          # c = 3 # coefficient to define the interval around estimates to optimize function
                          noise = 10, # noise of the setup in ppm
-                         r.squared_threshold = 0.2 #threshold to discard data based on r.squared of the linear fit at tz over the kept part
+                         r.squared_threshold = 0.1, #threshold to discard data based on r.squared of the linear fit at tz over the kept part
+                         RMSE_threshold = 25, # threshold above which data are discarded
+                         cor_threshold = 0.5, # delimits the window in which CO2 is considered not correlated with time
+                         b_threshold = 1, # this value and its opposite define a window out of which data are being discarded
+                         ambient_CO2 = 421,
+                         error = 100 # error of the setup in ppm. fluxes starting outside of the window ambient_CO2 +/- error will be discarded
                          ){ 
   
-  # data <- co2_fluxes_vikesland %>% # this sis just to test the function with data sample
-  #   filter(
-  #     fluxID %in% c(99)
-  #   )
+  data <- co2_fluxes_liahovden# %>% # this sis just to test the function with data sample
+    # filter(
+    #   fluxID %in% c(160: 169)
+    # )
 
   CO2_df <- data %>% 
     group_by(fluxID) %>% 
@@ -262,7 +267,7 @@ fitting.flux <- function(data,
       cut = case_when(
         datetime < start_window | datetime > end_window ~ "cut",
         # fluxID ==  & datetime %in%  ~ "cut",
-        fluxID %in% weird_fluxesID ~ "cut",
+        # fluxID %in% weird_fluxesID ~ "cut",
         TRUE ~ "keep"
       ),
       cut = as_factor(cut),
@@ -541,35 +546,52 @@ fitting.flux <- function(data,
       # fit_slope = (a_est + b_est * (Cm_est - Cz) ) * (time - time_corr) + Cz - slope_tz * tz_est,
       start_z = start_window + tz # this is for graph purpose, to have a vertical line showing where tz is for each flux
       
-    ) %>% 
-  group_by(fluxID, Cm, a, b, tz, Cz) %>% 
-    # nest() %>% 
-    mutate(
-      RMSE = myfn2(time = time, CO2 = CO2, a = a, b = b, Cm = Cm, Cz = Cz, tz = tz - time_corr)
-    ) %>% 
-    ungroup
+    )# %>% 
+  # group_by(fluxID, Cm, a, b, tz, Cz) %>% 
+  #   # nest() %>% 
+  #   mutate(
+  #     RMSE = myfn2(time = time, CO2 = CO2, a = a, b = b, Cm = Cm, Cz = Cz, tz = tz - time_corr)
+  #   ) %>% 
+  #   ungroup
   
   r2_general <-function(preds,actual){ 
     return(1 - (sum((preds - actual)^2)/sum((preds - mean(actual))^2)))
   }
   
   model_fit <- CO2_fitting %>%
-    filter(
-      cut == "keep"
-    ) %>%
-    select(fluxID, time, CO2, fit, RMSE, fit_slope) %>% 
     group_by(fluxID) %>% 
     nest() %>% 
     rowwise() %>% 
     summarize(
+      cor_coef = cor(data$CO2, data$time)
+    )
+  
+  model_fit_cut <- CO2_fitting %>%
+    filter(
+      cut == "keep"
+    ) %>%
+    group_by(fluxID) %>% 
+    nest() %>% 
+    rowwise() %>%
+    # select(fluxID, time, CO2, fit, fit_slope, Cm, a, b, Cz, tz, time_corr) %>% 
+    summarize(
+      cor_coef_keep = cor(data$CO2, data$time),
       r.squared = r2_general(data$fit, data$CO2),
-      norm_RMSE = data$RMSE / (max(data$CO2) - min(data$CO2)),
-      r.squared_slope = r2_general(data$fit_slope, data$CO2) # this one works to assess quality of data
+      RMSE = sqrt((1/length(data$time)) * sum((data$fit - data$CO2)^2)),
+      # RMSE = myfn2(time = data$time, CO2 = data$CO2, a = data$a, b = data$b, Cm = data$Cm, Cz = data$Cz, tz = data$tz - data$time_corr),
+      norm_RMSE = RMSE / (max(data$CO2) - min(data$CO2)),
+      r.squared_slope = r2_general(data$fit_slope, data$CO2),
+      start_error = case_when(
+        data$CO2[1] < (ambient_CO2 - error) ~ "error",
+        data$CO2[1] > (ambient_CO2 + error) ~ "error",
+        TRUE ~ "ok"
+      )
     ) %>% 
     ungroup()
   
   CO2_fitting <- CO2_fitting %>% 
-    left_join(model_fit)
+    left_join(model_fit) %>% 
+    left_join(model_fit_cut)
   
   # now we need a set of rules to assess if the data should be kept, discarded, or replaced by 0
   # kept: good fit
@@ -581,10 +603,24 @@ fitting.flux <- function(data,
   CO2_fitting <- CO2_fitting %>% 
     mutate(
       threshold_slope = noise / as.double(difftime(end_window, start_window, units = "secs")),
+      fit_quality = case_when(
+        b <= -b_threshold & b >= b_threshold ~ "bad",
+        RMSE > RMSE_threshold ~ "bad",
+        r.squared_slope < r.squared_threshold ~ "bad",
+        # fluxID %in% weird_fluxesID ~ "bad",
+        # start_error == "error" ~ "bad",
+        TRUE ~ "ok"
+      ),
+      correlation = case_when(
+        cor_coef < cor_threshold & cor_coef > -cor_threshold ~ "no",
+        TRUE ~ "yes"
+      ),
       flag = case_when(
-        r.squared_slope >= r.squared_threshold ~ "ok",
-        r.squared_slope < r.squared_threshold & slope_tz > threshold_slope ~ "discard",
-        r.squared_slope < r.squared_threshold & slope_tz <= threshold_slope ~ "zero"
+        fluxID %in% weird_fluxesID ~ "weird_flux",
+        start_error == "error" ~ "start_error",
+        fit_quality == "bad" & correlation == "yes" ~ "discard",
+        fit_quality == "bad" & correlation == "no" ~ "zero",
+        fit_quality == "ok" ~ "ok"
       )
     )
     
@@ -608,7 +644,7 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
   vol = chamber_volume + tube_volume
   
   slopes <- co2conc %>% 
-    select(fluxID, slope_tz, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz) %>% 
+    select(fluxID, slope, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz, r.squared_slope) %>% 
     distinct()
   
   means <- co2conc %>% 
@@ -626,13 +662,13 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
     #   co2conc,
     #   by = "fluxID"
     # ) %>% 
-    select(fluxID, slope_tz, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz) %>% 
+    select(fluxID, slope, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz, r.squared_slope) %>% 
     distinct() %>% 
     rename(
       datetime = start_window
     ) %>% 
     mutate(
-      flux = (slope_tz * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
+      flux = (slope * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
       *3600 #secs to hours
       /1000 #micromol to mmol
       # PARavg = case_when(
@@ -641,7 +677,7 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
       # )
     ) %>% #flux is now in mmol/m^2/h, which is more common
     arrange(datetime) %>% 
-    select(!c(slope_tz, temp_airavg))
+    select(!c(slope, temp_airavg))
   
   return(fluxes_final)
   

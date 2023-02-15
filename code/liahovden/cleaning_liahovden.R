@@ -36,7 +36,7 @@ record_liahovden <- read_csv("raw_data/PFTC6_cflux_field-record_liahovden.csv", 
 # we have defined a default window length of 60 secs.
 
 
-co2_fluxes_liahovden <- match.flux.PFTC6(co2_24h_liahovden, record_liahovden, startcrop = 10, measurement_length = 180, window_length = 100, date_format = "ymd")
+co2_fluxes_liahovden <- match.flux.PFTC6(co2_24h_liahovden, record_liahovden, startcrop = 0, measurement_length = 180, window_length = 100, date_format = "ymd")
 
 # cutting liahovden ------------------------------------------------------
 # cutting_liahovden <- read_csv("raw_data/PFTC6_cflux_cutting_liahovden.csv", na = "", col_types = "dcc")
@@ -291,3 +291,13 @@ cflux_liahovden_corrected %>%
 
 write_csv(cflux_liahovden_corrected, "clean_data/PFTC6_24h-cflux_liahovden_2022.csv")
 
+
+# zhao18 cleaning ---------------------------------------------------------
+
+slopes_zhao18 <- co2_fluxes_liahovden %>% 
+  filter(
+    datetime > start_window &
+      datetime < end_window
+  ) %>% 
+  fitting.flux()
+# need to find a solution for when the flux is shorter than Cz_window

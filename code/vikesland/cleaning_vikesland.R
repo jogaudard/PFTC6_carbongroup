@@ -574,7 +574,7 @@ slopes_zhao18 <- co2_fluxes_vikesland %>%
   )
 
 slopes_zhao18_metrics <- slopes_zhao18 %>% 
-  select(fluxID, Cm, a, b, tz, Cz, slope_tz, RMSE, r.squared_slope, threshold_slope, flag, norm_RMSE, r.squared) %>% 
+  select(fluxID, Cm, a, b, tz, Cz, slope_tz, RMSE, r.squared_slope, threshold_slope, flag, cor_coef, cor_coef_keep) %>% 
   distinct()
 
 # theme_set(theme_grey(base_size = 5))
@@ -669,7 +669,7 @@ gc()
 
 # Richard idea: select 50 good ones and 50 bad ones and find a metric that differentiate them
 
-bad_fluxesID <- c(5, 41, 85, 98, 99, 106, 118, 128, 129, 131, 137, 139, 150, 161, 180, 185, 190, 193, 197, 198, 210)
+bad_fluxesID <- c(5, 41, 85, 98, 99, 106, 118, 128, 129, 131, 137, 139, 150, 161, 164, 180, 185, 190, 193, 197, 198, 210)
 
 slopes_zhao18 %>% 
   filter(
@@ -699,7 +699,7 @@ slopes_zhao18 %>%
 # trying to find a metrics to show the bad ones
 
 slopes_zhao18_ID <- slopes_zhao18 %>% 
-  select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope) %>% 
+  select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope, tz, flag, cor_coef, cor_coef_keep) %>% 
   distinct() %>% 
   mutate(
     quality = case_when(
@@ -707,21 +707,57 @@ slopes_zhao18_ID <- slopes_zhao18 %>%
       TRUE ~ "ok"
     )
   ) %>% 
-  pivot_longer(cols = c(a, a_est, b_est, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope), names_to = "metrics", values_to = "value")
+  filter(
+    b > -1 & b < 1 # try this rule
+    # & !fluxID %in% c(164) # visually assessed as "weird flux"
+    & RMSE <= 25
+    & r.squared_slope >= 0.12
+  ) 
+
 
 slopes_zhao18_ID %>% 
+  pivot_longer(
+    cols = c(a, a_est, b_est, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope, tz, cor_coef, cor_coef_keep),
+    names_to = "metrics",
+    values_to = "value"
+    ) %>% 
   filter(
-    metrics %in% c("r.squared_slope", "r.squared")
+    metrics %in% c(
+      "r.squared_slope"
+      , "r.squared"
+      #, "b"
+                   ,"norm_RMSE"
+                   # , "RMSE"
+      ,"cor_coef"
+      ,"cor_coef_keep"
+                   )
   ) %>%
-  ggplot(aes(x = quality, y = value)) +
+  ggplot(aes(x = metrics, y = value, color = quality, label = fluxID)) +
   geom_point() +
+  geom_line(aes(group = fluxID)) +
   # scale_y_continuous(trans='log10') +
-  ylim(0, 1) +
-  facet_wrap(~metrics, scales = "free", nrow = 1)
+  ylim(-0.8, 0.8) +
+  geom_text(hjust=-1,vjust=1)
+
+  # facet_wrap(~metrics, scales = "free", nrow = 1)
+
+slopes_zhao18_badfit <- slopes_zhao18_metrics %>% 
+  filter(
+    b <= -1
+    | b >= 1
+    | RMSE > 25
+    | r.squared_slope < 0.12
+  ) %>% 
+  select(fluxID, cor_coef, cor_coef_keep)
+
+badfit <- slopes_zhao18_badfit %>% 
+  pull(fluxID)
 
 slopes_zhao18 %>% 
   filter(
-    fluxID %in% c(164,130)
+    # fluxID %in% badfit
+    # fluxID %in% c(161)
+    fluxID %in% zero_fluxes
   ) %>% 
   # mutate(
   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
@@ -738,8 +774,17 @@ slopes_zhao18 %>%
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
-  # ylim(400,700) +
+  ylim(400, 800) +
   facet_wrap(~fluxID, scales = "free")
+
+# slopes_zhao18 <- slopes_zhao18 %>% 
+#   mutate(
+#     slope = case_when(
+#       flag == "ok" ~ slope_tz,
+#       flag == "discard" ~ NA_real_,
+#       flag == "zero" ~ 0
+#     )
+#   )
 
 # CO2_fitting %>% 
 #   ggplot(aes(datetime)) +
@@ -763,7 +808,18 @@ slopes_zhao18 %>%
 
 # calculating the new fluxes
 
+source("code/functions.R")
+
+
 fluxes_zhao18 <- slopes_zhao18 %>% 
+  # rename(slope = slope_tz) %>%
+  mutate(
+    slope = case_when(
+      flag == "ok" ~ slope_tz,
+      flag == "zero" ~ 0,
+      flag %in% c("discard", "start_error", "weird_flux") ~ NA_real_
+    )
+  ) %>%
   flux.calc.zhao18()%>% 
   rename(
     flux_zhao18 = flux
@@ -789,12 +845,21 @@ cflux_vikesland_old <- read_csv("clean_data/PFTC6_24h-cflux_vikesland_2022.csv",
   arrange(datetime) %>% 
   mutate(
     ID = row_number(datetime)
-  )
+  ) %>% 
+  ungroup
 
 cflux_vikesland <- full_join(cflux_vikesland_old, fluxes_zhao18, by = c("ID", "type", "turfID")) %>% 
   mutate(
     difference = abs(flux_zhao18 - flux)
   )
+
+zero_fluxes <- cflux_vikesland %>%
+  filter(
+    flux == 0
+    & flux_zhao18 != 0
+    ) %>% 
+  pull(fluxID)
+  select(fluxID, flux_zhao18, r.squared_slope)
 
 cflux_vikesland %>% 
   ggplot(aes(x = flux, y = flux_zhao18, label = fluxID)) +
