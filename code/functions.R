@@ -46,7 +46,10 @@ match.flux.PFTC6 <- function(raw_flux, field_record, window_length = 90, startcr
       end = start + measurement_length, #creating column End
       start_window = start + startcrop, #cropping the start
       end_window = start_window + window_length, #cropping the end of the measurement
-      fluxID = row_number() #adding an individual ID ot each flux, useful to join data or graph the fluxes
+    # ) %>%
+    # arrange(start) %>%
+    # mutate(
+      fluxID = row_number() #adding an individual ID to each flux, useful to join data or graph the fluxes
     ) %>% 
     select(start, end, start_window, end_window, fluxID, turfID, type, date)
   
@@ -133,6 +136,9 @@ flux.calc.PFTC6 <- function(co2conc, # dataset of CO2 concentration versus time 
 
 GPP.PFTC6 <- function(fluxes){
   
+  #just to test
+  # fluxes <- cflux_liahovden
+  
 fluxes_GPP <- fluxes %>%
   mutate(
     pairID = case_when(
@@ -146,7 +152,9 @@ fluxes_GPP <- fluxes %>%
     turfID = as_factor(turfID),
     type = as_factor(type)
   ) %>% 
-  select(!c(fluxID, adj.r.squared, p.value)) %>%
+  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux) %>%
+  # select(!c(fluxID, adj.r.squared, p.value)) %>%
+  # select(!c(fluxID)) %>% 
   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
   # select(!c(PAR_corrected_flux)) %>%
   # select(campaign, turfID, date, type, corrected_flux) %>%
@@ -236,7 +244,7 @@ fitting.flux <- function(data,
                          error = 100 # error of the setup in ppm. fluxes starting outside of the window ambient_CO2 +/- error will be discarded
                          ){ 
   
-  data <- co2_fluxes_liahovden# %>% # this sis just to test the function with data sample
+  # data <- co2_fluxes_liahovden# %>% # this sis just to test the function with data sample
     # filter(
     #   fluxID %in% c(160: 169)
     # )
@@ -399,7 +407,7 @@ fitting.flux <- function(data,
     left_join(a_df) %>% 
     left_join(Ct_df) %>% 
     mutate(
-      b_est = log((Ct - Cm_est + a_est * b_window)/(Cz - Cm_est)) * (1/b_window)
+      b_est = log(abs((Ct - Cm_est + a_est * b_window)/(Cz - Cm_est))) * (1/b_window) # problem with the log? negative value? let's try with absolute value
     )
   
   # myfn <- function(time, CO2, par, Cz) {
@@ -620,6 +628,8 @@ fitting.flux <- function(data,
         start_error == "error" ~ "start_error",
         fit_quality == "bad" & correlation == "yes" ~ "discard",
         fit_quality == "bad" & correlation == "no" ~ "zero",
+        # fit_quality == "bad" & correlation == "no" & type == "NEE" ~ "zero",
+        # fit_quality == "bad" & correlation == "no" & type == "ER" ~ "discard", # the idea being that we cannot have a respiration of 0, but I am not sure I agree with that. Soil could be super dry, frozen, containing very little organic matter...
         fit_quality == "ok" ~ "ok"
       )
     )
