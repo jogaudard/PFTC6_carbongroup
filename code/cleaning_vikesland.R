@@ -1,13 +1,13 @@
 
 # This script will be to separate c-flux data into turfIDs and clean the fluxes before we calculate them
 
-source("code/functions.R")
-
-library("dataDownloader")
-
-library("tidyverse")
-
-library("scales")
+# source("code/functions.R")
+# 
+# library("dataDownloader")
+# 
+# library("tidyverse")
+# 
+# library("scales")
 
 # download raw data
 # download files from OSF ---------------------------------------
@@ -44,21 +44,21 @@ co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, st
 
 # zhao18 method -----------------------------------------------------------
 
-slopes_zhao18 <- co2_fluxes_vikesland %>% 
+slopes_zhao18_vikesland <- co2_fluxes_vikesland %>% 
   filter(
     datetime > start_window &
       datetime < end_window
   ) %>% 
   fitting.flux()
 
-slopes_zhao18_metrics <- slopes_zhao18 %>% 
+slopes_zhao18_metrics_vikesland <- slopes_zhao18_vikesland %>% 
   select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
   distinct()
 
 # graph them
 theme_set(theme_grey(base_size = 5))
 
-slopes_zhao18 %>% 
+slopes_zhao18_vikesland %>% 
   filter(
     fluxID %in% c(1:100)
   ) %>% 
@@ -78,11 +78,11 @@ slopes_zhao18 %>%
   # ylim(400,800) +
   facet_wrap(~fluxID, scales = "free")
 
-ggsave("vikesland1.png", height = 40, width = 100, units = "cm")
+ggsave("vikesland1.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
 gc()
 
-slopes_zhao18 %>% 
+slopes_zhao18_vikesland %>% 
   filter(
     fluxID %in% c(101:200)
   ) %>% 
@@ -104,9 +104,9 @@ slopes_zhao18 %>%
 
 gc()
 
-ggsave("vikesland2.png", height = 40, width = 100, units = "cm")
+ggsave("vikesland2.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
-slopes_zhao18 %>% 
+slopes_zhao18_vikesland %>% 
   filter(
     fluxID %in% c(201:300)
   ) %>% 
@@ -128,19 +128,19 @@ slopes_zhao18 %>%
 
 gc()
 
-ggsave("vikesland3.png", height = 40, width = 100, units = "cm")
+ggsave("vikesland3.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
 # at that stage, you should visually check the fluxes before going on with the calculations
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep <- filter(slopes_zhao18,
+co2_cut_keep_vikesland <- filter(slopes_zhao18_vikesland,
                        cut == "keep")  #to keep only the part we want to keep
 
 
 # cleaning PAR ------------------------------------------------------------
 
-co2_cut_keep <- co2_cut_keep %>% 
+co2_cut_keep_vikesland <- co2_cut_keep_vikesland %>% 
   mutate(
     PAR =
       case_when(
@@ -149,16 +149,33 @@ co2_cut_keep <- co2_cut_keep %>%
       )
   )
 
-filter(co2_cut_keep, type == "NEE") %>% #faster than looking at the graph!
+# there were some PAR sensor failures
+co2_cut_keep_vikesland <- co2_cut_keep_vikesland %>% 
+  mutate(
+    PAR = case_when(
+      fluxID %in% c(143, 153, 155, 177, 179, 151)
+      & PAR < 10 
+      ~ NA_real_,
+      TRUE ~ PAR
+    )
+  )
+
+filter(co2_cut_keep_vikesland, type == "NEE") %>% #faster than looking at the graph!
   summarise(
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
-co2_cut_keep %>% 
+co2_cut_keep_vikesland %>% 
   filter(
     type == "NEE"
-    # & fluxID == 95
-    # & PAR < 10
+    # & fluxID %in% c(151
+      # 143
+      # 153
+      # 155
+      # 177
+      # 179
+      # )
+    # & PAR < 5
   ) %>% 
   mutate(
     datetime = ymd_hms(datetime),
@@ -168,10 +185,12 @@ co2_cut_keep %>%
   geom_point() +
   geom_text(aes(label = fluxID))
 
+ggsave("PAR_NEE_vikesland.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
 
 # calculation of fluxes ---------------------------------------------------
 
-cflux_vikesland <- co2_cut_keep %>% 
+cflux_vikesland <- co2_cut_keep_vikesland %>% 
   mutate(
     slope = case_when(
       flag == "ok" ~ slope_tz,
@@ -187,8 +206,8 @@ cflux_vikesland_GPP <- GPP.PFTC6(cflux_vikesland)
 # correction and verification ---------------------------------------------
 
 cflux_vikesland_corrected <- GPP_corr.PFTC6(cflux_vikesland_GPP,
-                                          start_night = "23:00:00",
-                                          end_night = "04:00:00",
+                                          start_night = "22:30:00", # we expand the window because there still are some positive GPP values just at the edge of the usual window
+                                          end_night = "04:30:00",
                                           strategy = "max")
 
 
@@ -197,8 +216,13 @@ cflux_vikesland_corrected %>%
     type != "NEE"
     # & turfID == "27 AN3C 27"
   ) %>%
-  ggplot(aes(x = time, y = flux_corrected, color = type)) +
+  ggplot(aes(x = time, y = flux_corrected, color = type, label = time)) +
+  # geom_text() +
+  # scale_x_datetime(date_breaks = "5 hour", minor_breaks = "1 hour", date_labels = "%e/%m \n %H:%M") +
   geom_point()
+
+ggsave("24h_vikesland.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
 
 # write_csv(cflux_joasete_corrected, "clean_data/PFTC6_24h-cflux_liahovden_2022.csv")
 

@@ -1,9 +1,9 @@
 
 # This script will be to separate c-flux data into turfIDs and clean the fluxes before we calculate them
 
-source("code/functions.R")
-
-library("dataDownloader")
+# source("code/functions.R")
+# 
+# library("dataDownloader")
 
 # download raw data
 # download files from OSF ---------------------------------------
@@ -43,21 +43,21 @@ co2_fluxes_hogsete <- match.flux.PFTC6(co2_24h_hogsete, record_hogsete, startcro
 
 # zhao18 method -----------------------------------------------------------
 
-slopes_zhao18 <- co2_fluxes_hogsete %>% 
+slopes_zhao18_hogsete <- co2_fluxes_hogsete %>% 
   filter(
     datetime > start_window &
       datetime < end_window
   ) %>% 
   fitting.flux()
 
-slopes_zhao18_metrics <- slopes_zhao18 %>% 
+slopes_zhao18_metrics_hogsete <- slopes_zhao18_hogsete %>% 
   select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
   distinct()
 
 # graph them
 theme_set(theme_grey(base_size = 5))
 
-slopes_zhao18 %>% 
+slopes_zhao18_hogsete %>% 
   filter(
     fluxID %in% c(1:100)
   ) %>% 
@@ -77,11 +77,11 @@ slopes_zhao18 %>%
   # ylim(400,800) +
   facet_wrap(~fluxID, scales = "free")
 
-ggsave("hogsete1.png", height = 40, width = 100, units = "cm")
+ggsave("hogsete1.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
 gc()
 
-slopes_zhao18 %>% 
+slopes_zhao18_hogsete %>% 
   filter(
     fluxID %in% c(101:200)
   ) %>% 
@@ -103,7 +103,7 @@ slopes_zhao18 %>%
 
 gc()
 
-ggsave("hogsete2.png", height = 40, width = 100, units = "cm")
+ggsave("hogsete2.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
 # slopes_zhao18 %>% 
 #   filter(
@@ -133,13 +133,13 @@ ggsave("hogsete2.png", height = 40, width = 100, units = "cm")
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep <- filter(slopes_zhao18,
+co2_cut_keep_hogsete <- filter(slopes_zhao18_hogsete,
                        cut == "keep")  #to keep only the part we want to keep
 
 
 # cleaning PAR ------------------------------------------------------------
 
-co2_cut_keep <- co2_cut_keep %>% 
+co2_cut_keep_hogsete <- co2_cut_keep_hogsete %>% 
   mutate(
     PAR =
       case_when(
@@ -148,12 +148,12 @@ co2_cut_keep <- co2_cut_keep %>%
       )
   )
 
-filter(co2_cut_keep, type == "NEE") %>% #faster than looking at the graph!
+filter(co2_cut_keep_hogsete, type == "NEE") %>% #faster than looking at the graph!
   summarise(
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
-co2_cut_keep %>% 
+co2_cut_keep_hogsete %>% 
   filter(
     type == "NEE"
     # & fluxID == 47
@@ -167,10 +167,13 @@ co2_cut_keep %>%
   geom_point() +
   geom_text(aes(label = fluxID))
 
+ggsave("PAR_NEE_hogsete.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
+
 
 # calculation of fluxes ---------------------------------------------------
 
-cflux_hogsete <- co2_cut_keep %>% 
+cflux_hogsete <- co2_cut_keep_hogsete %>% 
   mutate(
     slope = case_when(
       flag == "ok" ~ slope_tz,
@@ -198,6 +201,9 @@ cflux_hogsete_corrected %>%
   ) %>%
   ggplot(aes(x = time, y = flux_corrected, color = type)) +
   geom_point()
+
+ggsave("24h_hogsete.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
 
 # write_csv(cflux_hogsete_corrected, "clean_data/PFTC6_24h-cflux_liahovden_2022.csv")
 

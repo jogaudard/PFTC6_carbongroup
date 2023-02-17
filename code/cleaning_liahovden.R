@@ -1,9 +1,9 @@
 
 #This script will be to separate c-flux data into turfIDs and clean the fluxes before we calculate them
 
-source("code/functions.R")
-
-library("dataDownloader")
+# source("code/functions.R")
+# 
+# library("dataDownloader")
 
 # download raw data
 # download files from OSF ---------------------------------------
@@ -42,21 +42,21 @@ co2_fluxes_liahovden <- match.flux.PFTC6(co2_24h_liahovden, record_liahovden, st
 
 # zhao18 cleaning ---------------------------------------------------------
 
-slopes_zhao18 <- co2_fluxes_liahovden %>% 
+slopes_zhao18_liahovden <- co2_fluxes_liahovden %>% 
   filter(
     datetime > start_window &
       datetime < end_window
   ) %>% 
   fitting.flux()
 
-slopes_zhao18_metrics <- slopes_zhao18 %>% 
+slopes_zhao18_metrics_liahovden <- slopes_zhao18_liahovden %>% 
   select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
   distinct()
 
 # graph them
 theme_set(theme_grey(base_size = 5))
 
-slopes_zhao18 %>% 
+slopes_zhao18_liahovden %>% 
   filter(
     fluxID %in% c(1:100)
   ) %>% 
@@ -75,11 +75,11 @@ slopes_zhao18 %>%
   # ylim(400,800) +
   facet_wrap(~fluxID, scales = "free")
 
-ggsave("liahovden1.png", height = 40, width = 100, units = "cm")
+ggsave("liahovden1.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
 gc()
 
-slopes_zhao18 %>% 
+slopes_zhao18_liahovden %>% 
   filter(
     fluxID %in% c(101:200)
   ) %>% 
@@ -100,18 +100,18 @@ slopes_zhao18 %>%
 
 gc()
 
-ggsave("liahovden2.png", height = 40, width = 100, units = "cm")
+ggsave("liahovden2.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep <- filter(slopes_zhao18,
+co2_cut_keep_liahovden <- filter(slopes_zhao18_liahovden,
                        cut == "keep")  #to keep only the part we want to keep
 
 
 # cleaning PAR ------------------------------------------------------------
 
-co2_cut_keep <- co2_cut_keep %>% 
+co2_cut_keep_liahovden <- co2_cut_keep_liahovden %>% 
   mutate(
     PAR =
       case_when(
@@ -120,12 +120,12 @@ co2_cut_keep <- co2_cut_keep %>%
       )
   )
 
-filter(co2_cut_keep, type == "NEE") %>% #faster than looking at the graph!
+filter(co2_cut_keep_liahovden, type == "NEE") %>% #faster than looking at the graph!
   summarise(
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
-co2_cut_keep %>% 
+co2_cut_keep_liahovden %>% 
   filter(
     type == "NEE"
     # & PAR < 10
@@ -138,10 +138,12 @@ co2_cut_keep %>%
   geom_point() +
   geom_text(aes(label = fluxID))
 
+ggsave("PAR_NEE_liahovden.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
 
 # calculation of fluxes ---------------------------------------------------
 
-cflux_liahovden <- co2_cut_keep %>% 
+cflux_liahovden <- co2_cut_keep_liahovden %>% 
   mutate(
     slope = case_when(
       flag == "ok" ~ slope_tz,
@@ -169,6 +171,9 @@ cflux_liahovden_corrected %>%
   ) %>%
   ggplot(aes(x = time, y = flux_corrected, color = type)) +
   geom_point()
+
+ggsave("24h_liahovden.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
 
 # write_csv(cflux_liahovden_corrected, "clean_data/PFTC6_24h-cflux_liahovden_2022.csv")
 
