@@ -744,11 +744,11 @@ ggsave("24h_vikesland.png", height = 30, width = 40, units = "cm", path = "graph
 # source("code/functions.R")
 # 
 # 
-# slopes_zhao18 <- co2_fluxes_vikesland %>% 
+# slopes_zhao18 <- co2_fluxes_vikesland %>%
 #   filter(
 #     datetime > start_window &
 #       datetime < end_window
-#   ) %>% 
+#   ) %>%
 #   # filter(
 #   #   fluxID %in% c(106, 111, 109, 101)
 #   # ) %>%
@@ -760,8 +760,8 @@ ggsave("24h_vikesland.png", height = 30, width = 40, units = "cm", path = "graph
 #     # c = 1
 #   )
 # 
-# slopes_zhao18_metrics <- slopes_zhao18 %>% 
-#   select(fluxID, Cm, a, b, tz, Cz, slope_tz, RMSE, r.squared_slope, threshold_slope, flag, cor_coef, cor_coef_keep) %>% 
+# slopes_zhao18_metrics <- slopes_zhao18 %>%
+#   select(fluxID, Cm, a, b, tz, Cz, slope_tz, RMSE, r.squared_full, r.squared, r.squared_slope, threshold_slope, flag, cor_coef, cor_coef_keep) %>%
 #   distinct()
 # 
 # # theme_set(theme_grey(base_size = 5))
@@ -885,33 +885,35 @@ ggsave("24h_vikesland.png", height = 30, width = 40, units = "cm", path = "graph
 # 
 # # trying to find a metrics to show the bad ones
 # 
-# slopes_zhao18_ID <- slopes_zhao18 %>% 
-#   select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope, tz, flag, cor_coef, cor_coef_keep) %>% 
-#   distinct() %>% 
+# slopes_zhao18_ID <- slopes_zhao18 %>%
+#   select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared_full, r.squared, norm_RMSE, r.squared_slope, tz, flag, cor_coef, cor_coef_keep) %>%
+#   distinct() %>%
 #   mutate(
 #     quality = case_when(
 #       fluxID %in% bad_fluxesID ~ "bad",
 #       TRUE ~ "ok"
 #     )
-#   ) %>% 
+#   ) %>%
 #   filter(
 #     b > -1 & b < 1 # try this rule
 #     # & !fluxID %in% c(164) # visually assessed as "weird flux"
-#     & RMSE <= 25
-#     & r.squared_slope >= 0.12
-#   ) 
+#     # & RMSE <= 25
+#     # & r.squared_slope >= 0.12
+#     # & (r.squared > 0.5 | r.squared_slope > 0.5)
+#   )
 # 
 # 
-# slopes_zhao18_ID %>% 
+# slopes_zhao18_ID %>%
 #   pivot_longer(
-#     cols = c(a, a_est, b_est, b, Cm, RMSE, r.squared, norm_RMSE, r.squared_slope, tz, cor_coef, cor_coef_keep),
+#     cols = c(a, a_est, b_est, b, Cm, RMSE, r.squared_full, r.squared, norm_RMSE, r.squared_slope, tz, cor_coef, cor_coef_keep),
 #     names_to = "metrics",
 #     values_to = "value"
-#     ) %>% 
+#     ) %>%
 #   filter(
 #     metrics %in% c(
 #       "r.squared_slope"
 #       , "r.squared"
+#       ,"r.squared_full"
 #       #, "b"
 #                    ,"norm_RMSE"
 #                    # , "RMSE"
@@ -923,32 +925,37 @@ ggsave("24h_vikesland.png", height = 30, width = 40, units = "cm", path = "graph
 #   geom_point() +
 #   geom_line(aes(group = fluxID)) +
 #   # scale_y_continuous(trans='log10') +
-#   ylim(-0.8, 0.8) +
+#   ylim(-200, -50) +
 #   geom_text(hjust=-1,vjust=1)
 # 
 #   # facet_wrap(~metrics, scales = "free", nrow = 1)
 # 
-# slopes_zhao18_badfit <- slopes_zhao18_metrics %>% 
+# slopes_zhao18_badfit <- slopes_zhao18_metrics %>%
 #   filter(
-#     b <= -1
+#     (b <= -1
 #     | b >= 1
 #     | RMSE > 25
-#     | r.squared_slope < 0.12
-#   ) %>% 
-#   select(fluxID, cor_coef, cor_coef_keep)
+#     | r.squared_slope < -100)
+#     # | (
+#     #   r.squared < -1
+#     #   & r.squared_slope < -100 
+#     #   & r.squared_full < -1))
+#     & !fluxID %in% bad_fluxesID
+#   ) %>%
+#   select(fluxID, r.squared, r.squared_full, r.squared_slope, flag)
 # 
-# badfit <- slopes_zhao18_badfit %>% 
+# badfit <- slopes_zhao18_badfit %>%
 #   pull(fluxID)
 # 
-# slopes_zhao18 %>% 
+# slopes_zhao18 %>%
 #   filter(
 #     # fluxID %in% badfit
-#     # fluxID %in% c(161)
-#     fluxID %in% zero_fluxes
-#   ) %>% 
+#     fluxID %in% c(161, 190)
+#     # fluxID %in% zero_fluxes
+#   ) %>%
 #   # mutate(
 #   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
-#   # ) %>% 
+#   # ) %>%
 #   ggplot(aes(datetime)) +
 #   geom_point(aes(y = CO2, color = cut), size = 0.2) +
 #   geom_line(aes(y = fit), linetype = "longdash") +

@@ -236,7 +236,7 @@ fitting.flux <- function(data,
                          b_window = 10, # window to estimate b. It is an interval after tz where it is assumed that C fits the data perfectly
                          # c = 3 # coefficient to define the interval around estimates to optimize function
                          noise = 10, # noise of the setup in ppm
-                         r.squared_threshold = 0.1, #threshold to discard data based on r.squared of the linear fit at tz over the kept part
+                         r.squared_threshold = -100, #threshold to discard data based on r.squared of the linear fit at tz over the kept part
                          RMSE_threshold = 25, # threshold above which data are discarded
                          cor_threshold = 0.5, # delimits the window in which CO2 is considered not correlated with time
                          b_threshold = 1, # this value and its opposite define a window out of which data are being discarded
@@ -563,7 +563,7 @@ fitting.flux <- function(data,
   #   ungroup
   
   r2_general <-function(preds,actual){ 
-    return(1 - (sum((preds - actual)^2)/sum((preds - mean(actual))^2)))
+    return(1 - (sum((actual - preds)^2)/sum((actual - mean(actual))^2)))
   }
   
   model_fit <- CO2_fitting %>%
@@ -571,7 +571,8 @@ fitting.flux <- function(data,
     nest() %>% 
     rowwise() %>% 
     summarize(
-      cor_coef = cor(data$CO2, data$time)
+      cor_coef = cor(data$CO2, data$time),
+      r.squared_full = r2_general(data$fit, data$CO2)
     )
   
   model_fit_cut <- CO2_fitting %>%
