@@ -195,6 +195,7 @@ cflux_hogsete_corrected <- GPP_corr.PFTC6(cflux_hogsete_GPP,
                                           strategy = "max")
 
 
+# Graph this
 cflux_hogsete_corrected %>%
   filter(
     type != "NEE"
