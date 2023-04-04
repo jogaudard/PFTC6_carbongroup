@@ -28,7 +28,7 @@ get_file(node = "fcbw4",
 
 # cleaning hogsete ------------------------------------------------------
 # read the files
-co2_24h_hogsete <- read_csv("raw_data/Three-D_24h_c-flux_hogsete_2022.csv", na = c("#N/A"))
+co2_24h_hogsete <- read_csv("raw_data/PFTC6_CO2_hogsete_2022.csv", na = c("#N/A"))
 
 record_hogsete <- read_csv("raw_data/PFTC6_cflux_field-record_hogsete.csv", na = c(""))
 record_hogsete$turfID <- sub("^", "TTC ", record_hogsete$turfID)
