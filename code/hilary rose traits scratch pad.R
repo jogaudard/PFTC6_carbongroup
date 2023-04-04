@@ -34,13 +34,14 @@ traits = read.csv("clean_data/PFTC6_clean_leaf_traits_2022.csv") %>%
 table(traits$trt)
 
 ## Flux -----
-cflux.traits = cflux_all %>%
+cflux.traits = read.csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv") %>%
   separate(turfID, into = c("origin", "trt", "destination"), sep = " ", remove = FALSE) %>%
   mutate(datetime = ymd_hms(datetime),
          time = hms::as_hms(datetime))%>%
   mutate(since_midnight = hour(time) * 60 + minute(time)) %>% 
   filter(since_midnight >= (9*60)+50 & since_midnight < (14*60)+10) %>%
-  select(turfID, type, temp_soil, PARavg, datetime, time, flux, since_midnight)
+  select(turfID, type, temp_soil, PARavg, datetime, time, flux_corrected, since_midnight) %>%
+  rename(flux = flux_corrected)
 
 table(cflux.traits$trt)
 
