@@ -153,6 +153,7 @@ filter(co2_cut_keep_hogsete, type == "NEE") %>% #faster than looking at the grap
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
+# Graph the above 
 co2_cut_keep_hogsete %>% 
   filter(
     type == "NEE"
