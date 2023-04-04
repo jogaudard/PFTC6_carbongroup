@@ -36,8 +36,11 @@ table(traits$trt)
 ## Flux -----
 cflux.traits = cflux_all %>%
   separate(turfID, into = c("origin", "trt", "destination"), sep = " ", remove = FALSE) %>%
+  mutate(datetime = ymd_hms(datetime),
+         time = hms::as_hms(datetime))%>%
   mutate(since_midnight = hour(time) * 60 + minute(time)) %>% 
-  filter(since_midnight >= (9*60)+50 & since_midnight < (14*60)+10)
+  filter(since_midnight >= (9*60)+50 & since_midnight < (14*60)+10) %>%
+  select(turfID, type, temp_soil, PARavg, datetime, time, flux, since_midnight)
 
 table(cflux.traits$trt)
 
@@ -47,11 +50,19 @@ cover.seedclim = read.csv("raw_data/seedclim_turf_community.csv") %>%
   left_join(read.csv("raw_data/seedclim_turfs.csv")) %>%
   select(turfID, destinationPlotID, originPlotID, species, cover, year) %>%
   rename(destPlotID = destinationPlotID, origPlotID = originPlotID) %>%
+  mutate(trt = case_when(
+    origPlotID == destPlotID ~ "A",
+    TRUE ~ "W"
+  )) %>%
   filter(year == 2019)
   
 cover.3d = read.csv("clean_data/THREE-D_Cover_2019_2020.csv") %>%
   select(turfID, year, species, cover, destPlotID, origPlotID) %>%
   mutate(destPlotID = as.character(destPlotID), origPlotID = as.character(origPlotID)) %>%
+  mutate(trt = case_when(
+    origPlotID == destPlotID ~ "A",
+    TRUE ~ "W"
+  )) %>%
   filter(year == 2019)
 
 cover = cover.seedclim %>%
@@ -87,7 +98,7 @@ traits.cover = traits %>%
   # NOTE that this removes much of the data 
   drop_na(cover) %>%
   #Calculate weighted means
-  group_by(turfID, trait) %>%
+  group_by(turfID, trt, trait) %>%
   summarize(wtd.mean = weighted.mean(value, cover, na.rm = TRUE)) %>%
   pivot_wider(names_from = trait, values_from = wtd.mean)
   
@@ -103,7 +114,7 @@ flux.cwm = cflux.traits %>%
 flux.cwm = cflux.traits %>%
   left_join(traits.cover) %>%
   mutate(type = factor(type, levels = c("GPP", "NEE", "ER"))) %>%
-  filter(warming == "A") %>%
+  filter(trt == "A") %>%
   pivot_longer(cols = c(sla), values_to = "CWM", names_to = "trait") %>%
   drop_na(CWM)
   
