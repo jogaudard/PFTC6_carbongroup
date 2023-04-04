@@ -27,6 +27,9 @@ cflux_all = cflux_vikesland %>%
 
 colnames(cflux_all)
 
+# Flux read in for new clean data April 2023
+cflux_all = read.csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
+
 # Scratch plot for GPP ~ PAR ----
 
 ggplot(cflux_all %>% filter(type == "GPP"), aes(y = flux, x = PARavg, color = destSiteID, shape = warming)) +
