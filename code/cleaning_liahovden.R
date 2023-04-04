@@ -79,6 +79,7 @@ ggsave("liahovden1.png", height = 40, width = 100, units = "cm", path = "graph_f
 
 gc()
 
+# Graph them
 slopes_zhao18_liahovden %>% 
   filter(
     fluxID %in% c(101:200)
@@ -125,6 +126,7 @@ filter(co2_cut_keep_liahovden, type == "NEE") %>% #faster than looking at the gr
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
+# Graph them
 co2_cut_keep_liahovden %>% 
   filter(
     type == "NEE"
@@ -163,7 +165,7 @@ cflux_liahovden_corrected <- GPP_corr.PFTC6(cflux_liahovden_GPP,
                                             end_night = "04:00:00",
                                             strategy = "max")
 
-
+# Graph them
 cflux_liahovden_corrected %>%
   filter(
     type != "NEE"

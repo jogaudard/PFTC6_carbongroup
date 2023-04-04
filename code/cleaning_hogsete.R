@@ -81,6 +81,7 @@ ggsave("hogsete1.png", height = 40, width = 100, units = "cm", path = "graph_flu
 
 gc()
 
+# Graph them
 slopes_zhao18_hogsete %>% 
   filter(
     fluxID %in% c(101:200)
