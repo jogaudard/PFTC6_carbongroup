@@ -32,7 +32,7 @@ get_file(node = "fcbw4",
 
 # cleaning Vikesland ------------------------------------------------------
 # read the files
-co2_24h_vikesland <- read_csv("raw_data/Three-D_24h-cflux_vikesland_2022.csv", na = c("#N/A"))
+co2_24h_vikesland <- read_csv("raw_data/PFTC6_CO2_vikesland_2022.csv", na = c("#N/A"))
 
 record_vikesland <- read_csv("raw_data/PFTC6_cflux_field-record_vikesland.csv", na = c(""))
 
