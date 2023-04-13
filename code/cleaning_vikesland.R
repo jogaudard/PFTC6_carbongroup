@@ -32,7 +32,7 @@ get_file(node = "fcbw4",
 
 # cleaning Vikesland ------------------------------------------------------
 # read the files
-co2_24h_vikesland <- read_csv("raw_data/Three-D_24h-cflux_vikesland_2022.csv", na = c("#N/A"))
+co2_24h_vikesland <- read_csv("raw_data/PFTC6_CO2_vikesland_2022.csv", na = c("#N/A"))
 
 record_vikesland <- read_csv("raw_data/PFTC6_cflux_field-record_vikesland.csv", na = c(""))
 
@@ -82,6 +82,7 @@ ggsave("vikesland1.png", height = 40, width = 100, units = "cm", path = "graph_f
 
 gc()
 
+# Graph them
 slopes_zhao18_vikesland %>% 
   filter(
     fluxID %in% c(101:200)
@@ -106,6 +107,7 @@ gc()
 
 ggsave("vikesland2.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
+#Graph them
 slopes_zhao18_vikesland %>% 
   filter(
     fluxID %in% c(201:300)
@@ -165,6 +167,7 @@ filter(co2_cut_keep_vikesland, type == "NEE") %>% #faster than looking at the gr
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
+# Graph them
 co2_cut_keep_vikesland %>% 
   filter(
     type == "NEE"
@@ -210,7 +213,7 @@ cflux_vikesland_corrected <- GPP_corr.PFTC6(cflux_vikesland_GPP,
                                           end_night = "04:30:00",
                                           strategy = "max")
 
-
+# Graph them
 cflux_vikesland_corrected %>%
   filter(
     type != "NEE"

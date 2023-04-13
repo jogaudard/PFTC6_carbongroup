@@ -28,7 +28,7 @@ get_file(node = "fcbw4",
 
 # cleaning hogsete ------------------------------------------------------
 # read the files
-co2_24h_hogsete <- read_csv("raw_data/Three-D_24h_c-flux_hogsete_2022.csv", na = c("#N/A"))
+co2_24h_hogsete <- read_csv("raw_data/PFTC6_CO2_hogsete_2022.csv", na = c("#N/A"))
 
 record_hogsete <- read_csv("raw_data/PFTC6_cflux_field-record_hogsete.csv", na = c(""))
 record_hogsete$turfID <- sub("^", "TTC ", record_hogsete$turfID)
@@ -81,6 +81,7 @@ ggsave("hogsete1.png", height = 40, width = 100, units = "cm", path = "graph_flu
 
 gc()
 
+# Graph them
 slopes_zhao18_hogsete %>% 
   filter(
     fluxID %in% c(101:200)
@@ -153,6 +154,7 @@ filter(co2_cut_keep_hogsete, type == "NEE") %>% #faster than looking at the grap
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
+# Graph the above 
 co2_cut_keep_hogsete %>% 
   filter(
     type == "NEE"
@@ -194,6 +196,7 @@ cflux_hogsete_corrected <- GPP_corr.PFTC6(cflux_hogsete_GPP,
                                           strategy = "max")
 
 
+# Graph this
 cflux_hogsete_corrected %>%
   filter(
     type != "NEE"

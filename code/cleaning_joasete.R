@@ -117,6 +117,7 @@ ggsave("joasete1.png", height = 40, width = 100, units = "cm", path = "graph_flu
 
 gc()
 
+# Graph them
 slopes_zhao18_joasete %>% 
   filter(
     fluxID %in% c(101:200)
@@ -140,6 +141,8 @@ slopes_zhao18_joasete %>%
 gc()
 
 ggsave("joasete2.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
+
+# Graph them
 
 slopes_zhao18_joasete %>% 
   filter(
@@ -189,6 +192,7 @@ filter(co2_cut_keep_joasete, type == "NEE") %>% #faster than looking at the grap
     rangePAR = range(PAR, na.rm = TRUE)
   )
 
+# Graph them
 co2_cut_keep_joasete %>% 
   filter(
     type == "NEE"
@@ -229,7 +233,7 @@ cflux_joasete_corrected <- GPP_corr.PFTC6(cflux_joasete_GPP,
                                             end_night = "04:00:00",
                                             strategy = "max")
 
-
+# Graph them
 cflux_joasete_corrected %>%
   filter(
     type != "NEE"
