@@ -419,8 +419,11 @@ fitting.flux <- function(data,
   # }
   
   myfn <- function(time, CO2, par, Cz) {
-    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
-  }
+    sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-(1/(1+exp(-par[3])))*(time-exp(par[4])))-CO2)^2))
+    # sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-par[3]*(time-exp(par[4])))-CO2)^2))
+    # sqrt((1/length(time)) * sum((par[1]+par[2]*(time-exp(par[4]))+(Cz-par[1])*exp(-exp(par[3])*(time-exp(par[4])))-CO2)^2))
+    
+        }
   
   myfn1 <- function(time, CO2, Cz, Cm, b, tz) {
     sqrt((1/length(time)) * sum((Cm+(Cz-Cm)*exp(-b*(time-tz))-CO2)^2))
@@ -508,7 +511,8 @@ fitting.flux <- function(data,
       results = list(optim(par = c(Cm_est, a_est, b_est, log(tz_est)), fn = myfn, CO2 = data$CO2, time = data$time_cut, Cz = Cz)), #, lower=c(0, -Inf, -Inf, 0),  method="L-BFGS-B"
       Cm = results$par[1],
       a = results$par[2],
-      b = results$par[3],#/(abs(results$par[3])+1), 
+      # b = exp(results$par[3]),#/(abs(results$par[3])+1),
+      b = 1/(1+exp(-results$par[3])),
       #need to find the fit with the b closest to 0 (negative or positive)
       tz = exp(results$par[4]), #we force tz to be positive
       # b = bmin$minimum
@@ -613,9 +617,9 @@ fitting.flux <- function(data,
     mutate(
       threshold_slope = noise / as.double(difftime(end_window, start_window, units = "secs")),
       fit_quality = case_when(
-        b <= -b_threshold & b >= b_threshold ~ "bad",
-        RMSE > RMSE_threshold ~ "bad",
-        r.squared_slope < r.squared_threshold ~ "bad",
+        b <= 0 | b >= b_threshold ~ "bad",
+        # RMSE > RMSE_threshold ~ "bad",
+        # r.squared_slope < r.squared_threshold ~ "bad",
         # fluxID %in% weird_fluxesID ~ "bad",
         # start_error == "error" ~ "bad",
         TRUE ~ "ok"

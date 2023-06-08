@@ -66,6 +66,12 @@ write_csv(cflux_all_clean, "clean_data/PFTC6_24h_cflux_allsites_2022.csv")
 
 
 
+# to test the quality threshold -------------------------------------------
+
+
+
+
+
 
 
 
