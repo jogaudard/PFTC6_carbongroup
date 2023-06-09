@@ -152,13 +152,13 @@ fluxes_GPP <- fluxes %>%
     turfID = as_factor(turfID),
     type = as_factor(type)
   ) %>% 
-  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux) %>%
+  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux, fluxID) %>%
   # select(!c(fluxID, adj.r.squared, p.value)) %>%
   # select(!c(fluxID)) %>% 
   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
   # select(!c(PAR_corrected_flux)) %>%
   # select(campaign, turfID, date, type, corrected_flux) %>%
-  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg)) %>% 
+  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg, fluxID)) %>% 
   
   # pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
   rename(
@@ -184,6 +184,11 @@ fluxes_GPP <- fluxes %>%
       type == "ER" ~ datetime_ER,
       type == "NEE" ~ datetime_NEE,
       type == "GPP" ~ datetime_NEE
+    ),
+    fluxID = case_when(
+      type == "ER" ~ fluxID_ER,
+      type == "NEE" ~ fluxID_NEE,
+      type == "GPP" ~ NA_real_
     )
   ) %>% 
   select(!c(temp_soilavg_ER, temp_soilavg_NEE, PARavg_ER, PARavg_NEE, datetime_ER, datetime_NEE, pairID))
