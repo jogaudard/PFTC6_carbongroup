@@ -56,7 +56,7 @@ record_joasete <- read_csv("raw_data/PFTC6_cflux_field-record_joasete.csv", na =
 # matching the CO2 concentration data with the turfs using the field record
 # we have defined a default window length of 90 secs.
 
-co2_fluxes_joasete <- match.flux.PFTC6(co2_24h_joasete, record_joasete, startcrop = 0, window_length = 180, measurement_length = 180, date_format = "ymd")
+co2_fluxes_joasete <- match.flux.PFTC6(co2_24h_joasete, record_joasete, startcrop = 10, window_length = 160, measurement_length = 180, date_format = "ymd")
 # at Joasete, turfID 29 WN3C 106 and 109 AN3C 109 were swapped between 2022-07-28 11:20:00 and 2022-07-29 00:30:00
 
 co2_fluxes_joasete <- co2_fluxes_joasete %>% 
@@ -84,10 +84,12 @@ slopes_zhao18_joasete <- co2_fluxes_joasete %>%
     datetime > start_window &
       datetime < end_window
   ) %>% 
-  fitting.flux()
+  fitting.flux_nocut2(
+    weird_fluxesID = c(41,73,77)
+  )
 
 slopes_zhao18_metrics_joasete <- slopes_zhao18_joasete %>% 
-  select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
+  select(fluxID, b, b_est, RMSE, tz, flag, cor_coef) %>% 
   distinct()
 
 # graph them
@@ -98,7 +100,7 @@ slopes_zhao18_joasete %>%
     fluxID %in% c(1:100)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -123,7 +125,7 @@ slopes_zhao18_joasete %>%
     fluxID %in% c(101:200)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -149,7 +151,7 @@ slopes_zhao18_joasete %>%
     fluxID %in% c(201:300)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -172,8 +174,10 @@ ggsave("joasete3.png", height = 40, width = 100, units = "cm", path = "graph_flu
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep_joasete <- filter(slopes_zhao18_joasete,
-                       cut == "keep")  #to keep only the part we want to keep
+# co2_cut_keep_joasete <- filter(slopes_zhao18_joasete,
+#                        cut == "keep")  #to keep only the part we want to keep
+
+co2_cut_keep_joasete <- slopes_zhao18_joasete
 
 
 # cleaning PAR ------------------------------------------------------------

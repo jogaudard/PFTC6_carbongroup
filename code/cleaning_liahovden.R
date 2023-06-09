@@ -36,7 +36,7 @@ record_liahovden <- read_csv("raw_data/PFTC6_cflux_field-record_liahovden.csv", 
 # we have defined a default window length of 60 secs.
 
 
-co2_fluxes_liahovden <- match.flux.PFTC6(co2_24h_liahovden, record_liahovden, startcrop = 0, measurement_length = 180, window_length = 180, date_format = "ymd")
+co2_fluxes_liahovden <- match.flux.PFTC6(co2_24h_liahovden, record_liahovden, startcrop = 10, measurement_length = 180, window_length = 160, date_format = "ymd")
 
 #
 
@@ -47,10 +47,12 @@ slopes_zhao18_liahovden <- co2_fluxes_liahovden %>%
     datetime > start_window &
       datetime < end_window
   ) %>% 
-  fitting.flux()
+  fitting.flux_nocut2(
+    weird_fluxesID = c(43, 46, 86, 101)
+  )
 
 slopes_zhao18_metrics_liahovden <- slopes_zhao18_liahovden %>% 
-  select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
+  select(fluxID, b, b_est, RMSE, tz, flag, cor_coef) %>% 
   distinct()
 
 # graph them
@@ -61,7 +63,7 @@ slopes_zhao18_liahovden %>%
     fluxID %in% c(1:100)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -85,7 +87,7 @@ slopes_zhao18_liahovden %>%
     fluxID %in% c(101:200)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -106,8 +108,10 @@ ggsave("liahovden2.png", height = 40, width = 100, units = "cm", path = "graph_f
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep_liahovden <- filter(slopes_zhao18_liahovden,
-                       cut == "keep")  #to keep only the part we want to keep
+# co2_cut_keep_liahovden <- filter(slopes_zhao18_liahovden,
+#                        cut == "keep")  #to keep only the part we want to keep
+
+co2_cut_keep_liahovden <- slopes_zhao18_liahovden
 
 
 # cleaning PAR ------------------------------------------------------------

@@ -8,7 +8,8 @@
 my_packages <- c("dataDownloader",
                  "tidyverse",
                  "lubridate",
-                 "broom"
+                 "broom",
+                 "zoo"
                  )
 
 lapply(my_packages, library, character.only = TRUE) 

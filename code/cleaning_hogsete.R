@@ -38,7 +38,7 @@ record_hogsete$turfID <- sub("^", "TTC ", record_hogsete$turfID)
 # matching the CO2 concentration data with the turfs using the field record
 # we have defined a default window length of 60 secs.
 
-co2_fluxes_hogsete <- match.flux.PFTC6(co2_24h_hogsete, record_hogsete, startcrop = 0, window_length = 180, measurement_length = 180, date_format = "ymd")
+co2_fluxes_hogsete <- match.flux.PFTC6(co2_24h_hogsete, record_hogsete, startcrop = 10, window_length = 160, measurement_length = 180, date_format = "ymd")
 
 
 # zhao18 method -----------------------------------------------------------
@@ -48,10 +48,11 @@ slopes_zhao18_hogsete <- co2_fluxes_hogsete %>%
     datetime > start_window &
       datetime < end_window
   ) %>% 
-  fitting.flux()
+  # fitting.flux_()
+  fitting.flux_nocut2()
 
 slopes_zhao18_metrics_hogsete <- slopes_zhao18_hogsete %>% 
-  select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
+  select(fluxID, b, b_est, RMSE, a, tz, Cm, flag, cor_coef) %>% 
   distinct()
 
 # graph them
@@ -62,12 +63,12 @@ slopes_zhao18_hogsete %>%
     fluxID %in% c(1:100)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
-    "keep" = "green",
-    "cut" = "red",
+    # "keep" = "green",
+    # "cut" = "red",
     "ok" = "black",
     "discard" = "red",
     "zero" = "grey",
@@ -87,19 +88,19 @@ slopes_zhao18_hogsete %>%
     fluxID %in% c(101:200)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
-    "keep" = "green",
-    "cut" = "red",
+    # "keep" = "green",
+    # "cut" = "red",
     "ok" = "black",
     "discard" = "red",
     "zero" = "grey",
     "start_error" = "red"
   )) +
   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
-  # ylim(400,700) +
+  # ylim(400,500) +
   facet_wrap(~fluxID, scales = "free")
 
 gc()
@@ -134,8 +135,10 @@ ggsave("hogsete2.png", height = 40, width = 100, units = "cm", path = "graph_flu
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep_hogsete <- filter(slopes_zhao18_hogsete,
-                       cut == "keep")  #to keep only the part we want to keep
+# co2_cut_keep_hogsete <- filter(slopes_zhao18_hogsete,
+#                        cut == "keep")  #to keep only the part we want to keep
+
+co2_cut_keep_hogsete <- slopes_zhao18_hogsete
 
 
 # cleaning PAR ------------------------------------------------------------
