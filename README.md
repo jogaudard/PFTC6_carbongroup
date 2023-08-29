@@ -38,6 +38,19 @@ Li-cor LI-840A.
 
 ## Microclimate
 
+| Variable name |                                                     Description                                                     | Variable type |                       Variable range or levels                       |         Unit        | How measured |
+|:-------------:|:-------------------------------------------------------------------------------------------------------------------:|:-------------:|:--------------------------------------------------------------------:|:-------------------:|:------------:|
+| datetime      | The date and time of the measurement                                                                                | Continuous    | 2022-07-23T00:00:00Z - 2022-08-05T00:00:00Z                          | YYYY-MM-DD HH:MM:SS | recorded     |
+| loggerID      | Unique identifier of the Tomst logger                                                                               | Categorical   | 94194604 - 95221150                                                  |                     | defined      |
+| turfID        | Unique ID of vegetation turf as originplotID, warming, nitrogen and grazing treatment and destinationplotID         | Categorical   | 100 AN5M 100 - TTC146                                                |                     | defined      |
+| site          | Unique site ID of destination site                                                                                  | Categorical   | Hogsete - Vikesland                                                  |                     | defined      |
+| sensor        | Sensor used to determine measurement (air_temperature = 15 cm, ground_temperature = 0 cm, soil_temperature = -8 cm) | Categorical   | air_temperature, ground_temperature, soil_moisture, soil_temperature |                     | defined      |
+| value         | Temperature reading                                                                                                 | Continuous    | -0.5625 - 30.75                                                      | ºC                  | recorded     |
+| shake         |                                                                                                                     |               | 202                                                                  |                     |              |
+| error_flag    |                                                                                                                     |               | 0 - 24                                                               |                     |              |
+| datetime_in   | The date and time the logger was installed                                                                          | Continuous    |                                                                      | YYYY-MM-DD HH:MM:SS | recorded     |
+| datetime_out  | The date and time the logger was removed                                                                            | Continuous    |                                                                      | YYYY-MM-DD HH:MM:SS | recorded     |
+
 <!-- # Figures -->
 <!-- ```{r, echo=FALSE, fig.align='left', fig.cap=""} -->
 <!-- # graph -->
