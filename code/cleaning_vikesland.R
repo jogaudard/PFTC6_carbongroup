@@ -39,7 +39,7 @@ record_vikesland <- read_csv("raw_data/PFTC6_cflux_field-record_vikesland.csv", 
 # matching the CO2 concentration data with the turfs using the field record
 # we have defined a default window length of 60 secs.
 
-co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, startcrop = 0, window_length = 180, measurement_length = 180)
+co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, startcrop = 10, window_length = 160, measurement_length = 180)
 
 
 # zhao18 method -----------------------------------------------------------
@@ -49,10 +49,12 @@ slopes_zhao18_vikesland <- co2_fluxes_vikesland %>%
     datetime > start_window &
       datetime < end_window
   ) %>% 
-  fitting.flux()
+  fitting.flux_nocut2(
+    weird_fluxesID = c(73, 141)
+  )
 
 slopes_zhao18_metrics_vikesland <- slopes_zhao18_vikesland %>% 
-  select(fluxID, b, b_est, RMSE, r.squared_slope, flag, cor_coef) %>% 
+  select(fluxID, b, b_est, RMSE, tz, flag, cor_coef) %>% 
   distinct()
 
 # graph them
@@ -63,7 +65,7 @@ slopes_zhao18_vikesland %>%
     fluxID %in% c(1:100)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -88,7 +90,7 @@ slopes_zhao18_vikesland %>%
     fluxID %in% c(101:200)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -113,7 +115,7 @@ slopes_zhao18_vikesland %>%
     fluxID %in% c(201:300)
   ) %>% 
   ggplot(aes(datetime)) +
-  geom_point(aes(y = CO2, color = cut), size = 0.2) +
+  geom_point(aes(y = CO2), size = 0.2) +
   geom_line(aes(y = fit), linetype = "longdash") +
   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
   scale_color_manual(values = c(
@@ -136,8 +138,10 @@ ggsave("vikesland3.png", height = 40, width = 100, units = "cm", path = "graph_f
 
 # clean cut ---------------------------------------------------------------
 
-co2_cut_keep_vikesland <- filter(slopes_zhao18_vikesland,
-                       cut == "keep")  #to keep only the part we want to keep
+# co2_cut_keep_vikesland <- filter(slopes_zhao18_vikesland,
+#                        cut == "keep")  #to keep only the part we want to keep
+
+co2_cut_keep_vikesland <- slopes_zhao18_vikesland
 
 
 # cleaning PAR ------------------------------------------------------------
@@ -199,7 +203,8 @@ cflux_vikesland <- co2_cut_keep_vikesland %>%
       flag == "ok" ~ slope_tz,
       flag == "zero" ~ 0,
       flag %in% c("discard", "start_error", "weird_flux") ~ NA_real_
-    )
+    ),
+    slope_noflag = slope_tz
   ) %>%
   flux.calc.zhao18()
 
