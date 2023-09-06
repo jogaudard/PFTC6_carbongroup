@@ -155,7 +155,9 @@ cflux_liahovden <- co2_cut_keep_liahovden %>%
       flag == "ok" ~ slope_tz,
       flag == "zero" ~ 0,
       flag %in% c("discard", "start_error", "weird_flux") ~ NA_real_
-    )
+    ),
+    slope_noflag = slope_tz
+    # slope = slope_tz # we keep the flags and the data
   ) %>%
   flux.calc.zhao18()
 

@@ -152,13 +152,13 @@ fluxes_GPP <- fluxes %>%
     turfID = as_factor(turfID),
     type = as_factor(type)
   ) %>% 
-  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux, fluxID) %>%
+  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux, fluxID, flag, flux_noflag) %>%
   # select(!c(fluxID, adj.r.squared, p.value)) %>%
   # select(!c(fluxID)) %>% 
   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
   # select(!c(PAR_corrected_flux)) %>%
   # select(campaign, turfID, date, type, corrected_flux) %>%
-  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg, fluxID)) %>% 
+  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg, fluxID, flag, flux_noflag)) %>% 
   
   # pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
   rename(
@@ -189,9 +189,41 @@ fluxes_GPP <- fluxes %>%
       type == "ER" ~ fluxID_ER,
       type == "NEE" ~ fluxID_NEE,
       type == "GPP" ~ NA_real_
+    ),
+    flag = case_when(
+      type == "ER" ~ flag_ER,
+      type == "NEE" ~ flag_NEE,
+      type == "GPP" & flag_ER == "discard" ~ "discard",
+      type == "GPP" & flag_NEE == "discard" ~ "discard",
+      type == "GPP" & flag_ER == "zero" ~ "zeroER",
+      type == "GPP" & flag_NEE == "zero" ~ "zeroNEE",
+      type == "GPP" & flag_ER == "start_error" ~ "start_error",
+      type == "GPP" & flag_NEE == "start_error" ~ "start_error",
+      type == "GPP" & flag_ER == "weird_flux" ~ "weird_flux",
+      type == "GPP" & flag_NEE == "weird_flux" ~ "weird_flux",
+      type == "GPP" & flag_ER == "ok" & flag_NEE == "ok" ~ "ok",
+    ),
+    flux_noflag = case_when(
+      type == "ER" ~ flux_noflag_ER,
+      type == "NEE" ~ flux_noflag_NEE,
+      type == "GPP" ~ NA_real_
     )
   ) %>% 
-  select(!c(temp_soilavg_ER, temp_soilavg_NEE, PARavg_ER, PARavg_NEE, datetime_ER, datetime_NEE, pairID))
+  select(!c(
+    temp_soilavg_ER,
+    temp_soilavg_NEE,
+    PARavg_ER,
+    PARavg_NEE,
+    datetime_ER,
+    datetime_NEE,
+    pairID,
+    fluxID_NEE,
+    fluxID_ER,
+    flag_NEE,
+    flag_ER,
+    flux_noflag_NEE,
+    flux_noflag_ER
+    ))
 
 return(fluxes_GPP)
 
@@ -1223,7 +1255,7 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
   vol = chamber_volume + tube_volume
   
   slopes <- co2conc %>% 
-    select(fluxID, slope, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz) %>% 
+    select(fluxID, slope, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz, flag, slope_noflag) %>% 
     distinct()
   
   means <- co2conc %>% 
@@ -1241,7 +1273,7 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
     #   co2conc,
     #   by = "fluxID"
     # ) %>% 
-    select(fluxID, slope, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz) %>% 
+    select(fluxID, slope, PARavg, temp_airavg, temp_soilavg, turfID, type, start_window, RMSE, a, b, tz, Cm, Cz, flag, slope_noflag) %>% 
     distinct() %>% 
     rename(
       datetime = start_window
@@ -1249,11 +1281,14 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
     mutate(
       flux = (slope * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
       *3600 #secs to hours
-      /1000 #micromol to mmol
+      /1000, #micromol to mmol
       # PARavg = case_when(
       #   type == "ER" ~ NA_real_,
       #   type == "NEE" ~ PARavg
       # )
+      flux_noflag = (slope_noflag * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
+      *3600 #secs to hours
+      /1000
     ) %>% #flux is now in mmol/m^2/h, which is more common
     arrange(datetime) %>% 
     select(!c(slope, temp_airavg))

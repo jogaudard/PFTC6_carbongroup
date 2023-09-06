@@ -223,7 +223,8 @@ cflux_joasete <- co2_cut_keep_joasete %>%
       flag == "ok" ~ slope_tz,
       flag == "zero" ~ 0,
       flag %in% c("discard", "start_error", "weird_flux") ~ NA_real_
-    )
+    ),
+    slope_noflag = slope_tz
   ) %>%
   flux.calc.zhao18()
 
