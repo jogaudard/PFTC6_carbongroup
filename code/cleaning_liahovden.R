@@ -167,7 +167,7 @@ cflux_liahovden_GPP <- GPP.PFTC6(cflux_liahovden)
 # correction and verification ---------------------------------------------
 
 cflux_liahovden_corrected <- GPP_corr.PFTC6(cflux_liahovden_GPP,
-                                            start_night = "23:00:00",
+                                            start_night = "22:58:00",
                                             end_night = "04:00:00",
                                             strategy = "max")
 

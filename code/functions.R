@@ -1214,6 +1214,7 @@ fitting.flux_nocut2 <- function(data,
       fit_quality = case_when(
         # b <= -b_threshold | 
           b >= b_threshold ~ "bad",
+          type == "ER" & slope_tz < 0 ~ "bad",
         # RMSE > RMSE_threshold ~ "bad",
         # r.squared_slope < r.squared_threshold ~ "bad",
         # fluxID %in% weird_fluxesID ~ "bad",
