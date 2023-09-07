@@ -38,6 +38,16 @@ Li-cor LI-840A.
 
 ## Microclimate
 
+| Variable name |                                                     Description                                                     | Variable type |                       Variable range or levels                       |         Unit        | How measured |
+|:-------------:|:-------------------------------------------------------------------------------------------------------------------:|:-------------:|:--------------------------------------------------------------------:|:-------------------:|:------------:|
+| datetime      | The date and time of the measurement                                                                                | Continuous    | 2022-07-23 00:15:00  - 2022-07-31 08:15:00                           | YYYY-MM-DD HH:MM:SS | recorded     |
+| loggerID      | Unique identifier of the Tomst logger                                                                               | Categorical   | 94200496 - 95221106                                                  |                     | defined      |
+| turfID        | Unique ID of vegetation turf as originplotID, warming, nitrogen and grazing treatment and destinationplotID         | Categorical   | 158 WN2C 199 - 115 TTC                                               |                     | defined      |
+| site          | Unique site ID of destination site                                                                                  | Categorical   | Hogsete - Vikesland                                                  |                     | defined      |
+| sensor        | Sensor used to determine measurement (air_temperature = 15 cm, ground_temperature = 0 cm, soil_temperature = -8 cm) | Categorical   | air_temperature, ground_temperature, soil_moisture, soil_temperature |                     | defined      |
+| value         | Temperature reading                                                                                                 | Continuous    | 0.02866388 - 29.3750                                                 | ºC                  | recorded     |
+| datetime_in   | The date and time the logger was installed                                                                          | Continuous    | 2019-08-22 23:00 - 2022-07-29 22:30                                  | YYYY-MM-DD HH:MM:SS | recorded     |
+| datetime_out  | The date and time the logger was removed                                                                            | Continuous    | 2022-07-28 11:00 - 2022-09-02 06:00                                  | YYYY-MM-DD HH:MM:SS | recorded     |
 <!-- # Figures -->
 <!-- ```{r, echo=FALSE, fig.align='left', fig.cap=""} -->
 <!-- # graph -->
