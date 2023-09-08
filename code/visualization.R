@@ -64,6 +64,40 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
 
 # liahovden ---------------------------------------------------------------
 
+
+# cumulative graph --------------------------------------------------------
+
+cum_fluxes <- fluxes %>% 
+  pivot_wider(names_from = "type", values_from = "flux_corrected") %>% 
+  mutate(
+    cum_flux_corr_ER = replace(ER, !is.na(ER), cumsum(na.omit(ER))),
+    cum_flux_corr_NEE = replace(NEE, !is.na(NEE), cumsum(na.omit(NEE))),
+    cum_flux_corr_GPP = replace(GPP, !is.na(GPP), cumsum(na.omit(GPP)))
+  ) %>% 
+  select(!c(ER, NEE, GPP)) %>% 
+  pivot_longer(cols = c(cum_flux_corr_ER, cum_flux_corr_NEE, cum_flux_corr_GPP), values_to = "cum_flux_corr", names_to = "type") %>% 
+  mutate(
+    type = str_replace_all(
+      type,
+      c(
+        "cum_flux_corr_ER" = "ER",
+        "cum_flux_corr_NEE" = "NEE",
+        "cum_flux_corr_GPP" = "GPP"
+      )
+    )
+  ) %>% 
+  drop_na(cum_flux_corr)
+
+
+  ggplot(aes(x = time, y = cum_flux_corr)) +
+  geom_line() +
+  geom_point() +
+  facet_grid(type ~ site, scales = "free")
+
+# diurnal -----------------------------------------------------------------
+
+
+
 data_long %>% 
   # filter(
   #   site == "liahovden"
