@@ -10,6 +10,20 @@ meta_seedclim <- tibble(
   turfID = c("TTC 101", "TTC 110", "TTC 115", "TTC 146", "TTC 140", "TTC 141"),
   origin = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
   destination = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
+  warming = "A"
+)
+
+# Harmonized with PFTC6 data paper
+metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>% 
+  select(warming, origSiteID, turfID, destSiteID) %>% 
+  bind_rows(meta_seedclim)
+
+
+# Archived code ----
+meta_seedclim <- tibble(
+  turfID = c("TTC 101", "TTC 110", "TTC 115", "TTC 146", "TTC 140", "TTC 141"),
+  origin = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
+  destination = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
   warming = "ambient"
 )
 
