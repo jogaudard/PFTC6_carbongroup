@@ -2,40 +2,38 @@ library(tidyverse)
 library(lubridate)
 library(hms)
 library(patchwork)
+library(dataDownloader)
 
-# Merge data from all sites ----
+get_file(node = "fcbw4",
+         file = "PFTC6_24h_cflux_allsites_2022.csv",
+         path = "clean_data",
+         remote_path = "c_flux_data")
 
-# The metadata is still messy because something went wrong with the site
-meta_seedclim <- tibble(
-  turfID = c("TTC 101", "TTC 110", "TTC 115", "TTC 146", "TTC 140", "TTC 141"),
-  destSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
-  origSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
-  warming = "A"
-) %>%
-  bind_rows(read_csv("raw_data/Three-D_metaturfID.csv")) %>%
-  mutate(turfID = as.character(turfID)) 
+get_file(node = "fcbw4",
+         file = "PFTC6_microclimate_allsites_2022.csv",
+         path = "clean_data",
+         remote_path = "microclimate")
 
-# Join all the data together ----
-cflux_all = cflux_vikesland %>%
-  bind_rows(cflux_joasete) %>%
-  bind_rows(cflux_hogsete) %>%
-  bind_rows(cflux_liahovden) %>%
-  rename(flux_old = flux, flux = flux_corrected) %>%
-  left_join(meta_seedclim) %>%
-  mutate(datetime = ymd_hms(datetime),
-         time = as_hms(datetime))%>%
+fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv") 
+
+microclimate <- read_csv("clean_data/PFTC6_microclimate_allsites_2022.csv")
+
+# Current code ----
+
+# Set up data ----
+fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")|>
+  left_join(metaturf) %>%
+mutate(datetime = ymd_hms(datetime),
+       time = as_hms(datetime))%>%
   mutate(destSiteID = factor(destSiteID, levels = c("Lia", "Joa", "Hog", "Vik"), 
                              labels = c("Liahovden", "Joasete", "Hogsete", "Vikesland")),
          origSiteID = factor(origSiteID, levels = c("Lia", "Joa", "Hog", "Vik"), 
-                           labels = c("Liahovden", "Joasete", "Hogsete", "Vikesland")))
-
-
-colnames(cflux_all)
+                             labels = c("Liahovden", "Joasete", "Hogsete", "Vikesland")))
 
 # Graphing functions ----
 plot.flux.time.site = function(orig.site, flux.type, starttime, ylim1, ylim2, title) {
   
-  ggplot(cflux_all %>% filter(destSiteID == orig.site) %>% filter(type == flux.type), 
+  ggplot(fluxes %>% filter(destSiteID == orig.site) %>% filter(type == flux.type), 
          aes(y = flux, x = time, color = warming)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
@@ -51,7 +49,7 @@ plot.flux.time.site = function(orig.site, flux.type, starttime, ylim1, ylim2, ti
 }
 
 plot.par.time.site = function(dest.site) {
-  ggplot(cflux_all %>% filter(destSiteID == dest.site) %>% filter(type == "GPP"), 
+  ggplot(fluxes %>% filter(destSiteID == dest.site) %>% filter(type == "GPP"), 
          aes(y = PARavg, x = time)) +
   geom_smooth(method = "loess", span = 1/3, color = "goldenrod1", se = FALSE) +
   stat_smooth(
@@ -71,29 +69,29 @@ plot.par.time.site = function(dest.site) {
 ## All sites together ----
 
 # Check ylims
-min(cflux_all$flux[cflux_all$type == "ER" & cflux_all$warming == "A"], na.rm = TRUE)
-max(cflux_all$flux[cflux_all$type == "ER" & cflux_all$warming == "A"], na.rm = TRUE)
+min(fluxes$flux[fluxes$type == "ER" & fluxes$warming == "A"], na.rm = TRUE)
+max(fluxes$flux[fluxes$type == "ER" & fluxes$warming == "A"], na.rm = TRUE)
 
-min(cflux_all$flux[cflux_all$type == "GPP" & cflux_all$warming == "A"], na.rm = TRUE)
-max(cflux_all$flux[cflux_all$type == "GPP" & cflux_all$warming == "A"], na.rm = TRUE)
+min(fluxes$flux[fluxes$type == "GPP" & fluxes$warming == "A"], na.rm = TRUE)
+max(fluxes$flux[fluxes$type == "GPP" & fluxes$warming == "A"], na.rm = TRUE)
 
 cflux.plot.er =
-ggplot(cflux_all %>% filter(type == "ER") %>% filter(warming == "A"), 
+ggplot(fluxes %>% filter(type == "ER") %>% filter(warming == "A"), 
        aes(y = flux, x = time, color = origSiteID)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   scale_color_manual(values = c("#005a32", "#238443", "#41ab5d", "#78c679")) +
-  ylim(-20, 95) +
+  ylim(0, 115) +
   theme_bw() +
   labs(x = "Time", title = "Ecosystem respiration (ER)") 
 
 cflux.plot.gpp =
-ggplot(cflux_all %>% filter(type == "GPP") %>% filter(warming == "A"), 
+ggplot(fluxes %>% filter(type == "GPP") %>% filter(warming == "A"), 
        aes(y = flux, x = time, color = origSiteID)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   scale_color_manual(values = c("#005a32", "#238443", "#41ab5d", "#78c679")) +
-  ylim(-95, 20) +
+  ylim(-100, 60) +
   theme_bw() +
   labs(x = "Time", title = "Gross primary productivity (GPP)") 
 
@@ -105,26 +103,26 @@ dev.off()
 ## Warming vs ambient ----
 
 cflux.plot.warm.er = 
-ggplot(cflux_all %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "ER"), 
+ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "ER"), 
        aes(y = flux, x = time, color = warming, shape = origSiteID)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "loess", span = 0.3, aes(linetype = origSiteID)) +
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
   scale_linetype_manual(values = c("solid", "longdash")) +
   facet_grid(type ~., scales = "free") +
-  ylim(-25, 120) +
+  ylim(0, 115) +
   theme_bw() +
   labs(x = "Time", title = "Ecosystem respiration (ER)") 
 
 cflux.plot.warm.gpp = 
-  ggplot(cflux_all %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "GPP"), 
+  ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "GPP"), 
          aes(y = flux, x = time, color = warming, shape = origSiteID)) +  
   geom_point(alpha = 0.5) +
   geom_smooth(method = "loess", span = 0.3, aes(linetype = origSiteID)) +
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
   scale_linetype_manual(values = c("solid", "longdash")) +
   facet_grid(type ~., scales = "free") +
-  ylim(-120, 25) +
+  ylim(-100, 60) +
   theme_bw() +
   labs(x = "Time", title = "Gross primary productivity (GPP)") 
 
@@ -187,3 +185,34 @@ lia.plot.gpp + lia.plot.par + lia.plot.er +
 
 png("visualizations/flux_PAR_Lia.png", res = 300, units = "in", width = 10, height = 10)
 dev.off()
+
+# ARCHIVED CODE ----
+# Merge data from all sites ----
+
+# The metadata is still messy because something went wrong with the site
+meta_seedclim <- tibble(
+  turfID = c("TTC 101", "TTC 110", "TTC 115", "TTC 146", "TTC 140", "TTC 141"),
+  destSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
+  origSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
+  warming = "A"
+) %>%
+  bind_rows(read_csv("raw_data/Three-D_metaturfID.csv")) %>%
+  mutate(turfID = as.character(turfID)) 
+
+# Join all the data together ----
+cflux_all = cflux_vikesland %>%
+  bind_rows(cflux_joasete) %>%
+  bind_rows(cflux_hogsete) %>%
+  bind_rows(cflux_liahovden) %>%
+  rename(flux_old = flux, flux = flux_corrected) %>%
+  left_join(meta_seedclim) %>%
+  mutate(datetime = ymd_hms(datetime),
+         time = as_hms(datetime))%>%
+  mutate(destSiteID = factor(destSiteID, levels = c("Lia", "Joa", "Hog", "Vik"), 
+                             labels = c("Liahovden", "Joasete", "Hogsete", "Vikesland")),
+         origSiteID = factor(origSiteID, levels = c("Lia", "Joa", "Hog", "Vik"), 
+                             labels = c("Liahovden", "Joasete", "Hogsete", "Vikesland")))
+
+
+colnames(cflux_all)
+
