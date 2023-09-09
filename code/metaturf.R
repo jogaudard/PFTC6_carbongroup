@@ -8,8 +8,8 @@ get_file(node = "pk4bg",
 
 meta_seedclim <- tibble(
   turfID = c("TTC 101", "TTC 110", "TTC 115", "TTC 146", "TTC 140", "TTC 141"),
-  origin = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
-  destination = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
+  origSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
+  destSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
   warming = "A"
 )
 
