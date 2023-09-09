@@ -19,7 +19,6 @@ fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
 microclimate <- read_csv("clean_data/PFTC6_microclimate_allsites_2022.csv")
 
 # Current code ----
-
 # Set up data ----
 fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")|>
   left_join(metaturf) %>%
@@ -34,7 +33,7 @@ mutate(datetime = ymd_hms(datetime),
 plot.flux.time.site = function(orig.site, flux.type, starttime, ylim1, ylim2, title) {
   
   ggplot(fluxes %>% filter(destSiteID == orig.site) %>% filter(type == flux.type), 
-         aes(y = flux, x = time, color = warming)) +
+         aes(y = flux_corrected_corrected, x = time, color = warming)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
@@ -50,7 +49,7 @@ plot.flux.time.site = function(orig.site, flux.type, starttime, ylim1, ylim2, ti
 
 plot.par.time.site = function(dest.site) {
   ggplot(fluxes %>% filter(destSiteID == dest.site) %>% filter(type == "GPP"), 
-         aes(y = PARavg, x = time)) +
+         aes(y = flux_correctedvg, x = time)) +
   geom_smooth(method = "loess", span = 1/3, color = "goldenrod1", se = FALSE) +
   stat_smooth(
     geom = 'area', method = 'loess', span = 1/3,
@@ -66,32 +65,33 @@ plot.par.time.site = function(dest.site) {
 }
 
 # Make the plots ----
+## Check ylims ----
+library(rstatix)
+
+fluxlims = fluxes |>
+  select(origSiteID, type, flux_corrected, PARavg) |>
+  group_by(type, origSiteID) |>
+  get_summary_stats(type = "common") |>
+    select(origSiteID:max)
+
 ## All sites together ----
-
-# Check ylims
-min(fluxes$flux[fluxes$type == "ER" & fluxes$warming == "A"], na.rm = TRUE)
-max(fluxes$flux[fluxes$type == "ER" & fluxes$warming == "A"], na.rm = TRUE)
-
-min(fluxes$flux[fluxes$type == "GPP" & fluxes$warming == "A"], na.rm = TRUE)
-max(fluxes$flux[fluxes$type == "GPP" & fluxes$warming == "A"], na.rm = TRUE)
-
 cflux.plot.er =
 ggplot(fluxes %>% filter(type == "ER") %>% filter(warming == "A"), 
-       aes(y = flux, x = time, color = origSiteID)) +
+       aes(y = flux_corrected, x = time, color = origSiteID)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   scale_color_manual(values = c("#005a32", "#238443", "#41ab5d", "#78c679")) +
-  ylim(0, 115) +
+  ylim(0, 135) +
   theme_bw() +
   labs(x = "Time", title = "Ecosystem respiration (ER)") 
 
 cflux.plot.gpp =
 ggplot(fluxes %>% filter(type == "GPP") %>% filter(warming == "A"), 
-       aes(y = flux, x = time, color = origSiteID)) +
+       aes(y = flux_corrected, x = time, color = origSiteID)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   scale_color_manual(values = c("#005a32", "#238443", "#41ab5d", "#78c679")) +
-  ylim(-100, 60) +
+  ylim(-130, 25) +
   theme_bw() +
   labs(x = "Time", title = "Gross primary productivity (GPP)") 
 
@@ -104,7 +104,7 @@ dev.off()
 
 cflux.plot.warm.er = 
 ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "ER"), 
-       aes(y = flux, x = time, color = warming, shape = origSiteID)) +
+       aes(y = flux_corrected, x = time, color = warming, shape = origSiteID)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "loess", span = 0.3, aes(linetype = origSiteID)) +
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
@@ -116,7 +116,7 @@ ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(
 
 cflux.plot.warm.gpp = 
   ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "GPP"), 
-         aes(y = flux, x = time, color = warming, shape = origSiteID)) +  
+         aes(y = flux_corrected, x = time, color = warming, shape = origSiteID)) +  
   geom_point(alpha = 0.5) +
   geom_smooth(method = "loess", span = 0.3, aes(linetype = origSiteID)) +
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
