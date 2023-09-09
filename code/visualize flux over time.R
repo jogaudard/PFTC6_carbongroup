@@ -33,7 +33,7 @@ mutate(datetime = ymd_hms(datetime),
 plot.flux.time.site = function(orig.site, flux.type, starttime, ylim1, ylim2, title) {
   
   ggplot(fluxes %>% filter(destSiteID == orig.site) %>% filter(type == flux.type), 
-         aes(y = flux_corrected_corrected, x = time, color = warming)) +
+         aes(y = flux_corrected, x = time, color = warming)) +
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
@@ -44,12 +44,12 @@ plot.flux.time.site = function(orig.site, flux.type, starttime, ylim1, ylim2, ti
   theme_bw() +
   theme(strip.background = element_blank(),
         strip.text.y = element_blank())+
-  labs(title = title, x = "Time") 
+  labs(title = title, x = "Time", y = flux.type) 
 }
 
 plot.par.time.site = function(dest.site) {
   ggplot(fluxes %>% filter(destSiteID == dest.site) %>% filter(type == "GPP"), 
-         aes(y = flux_correctedvg, x = time)) +
+         aes(y = PARavg, x = time)) +
   geom_smooth(method = "loess", span = 1/3, color = "goldenrod1", se = FALSE) +
   stat_smooth(
     geom = 'area', method = 'loess', span = 1/3,
@@ -61,7 +61,7 @@ plot.par.time.site = function(dest.site) {
   theme(strip.background = element_blank(),
         strip.text.y = element_blank()
   )+
-  labs(title = "Light (PAR)", x = "") 
+  labs(title = "Light (PAR)", x = "", y = "umol/sec/m^2") 
 }
 
 # Make the plots ----
@@ -101,7 +101,6 @@ dev.off()
 
 
 ## Warming vs ambient ----
-
 cflux.plot.warm.er = 
 ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(type == "ER"), 
        aes(y = flux_corrected, x = time, color = warming, shape = origSiteID)) +
@@ -110,7 +109,7 @@ ggplot(fluxes %>% filter(origSiteID  %in% c("Liahovden", "Joasete")) %>% filter(
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
   scale_linetype_manual(values = c("solid", "longdash")) +
   facet_grid(type ~., scales = "free") +
-  ylim(0, 115) +
+  ylim(0, 135) +
   theme_bw() +
   labs(x = "Time", title = "Ecosystem respiration (ER)") 
 
@@ -122,7 +121,7 @@ cflux.plot.warm.gpp =
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
   scale_linetype_manual(values = c("solid", "longdash")) +
   facet_grid(type ~., scales = "free") +
-  ylim(-100, 60) +
+  ylim(-145, 21) +
   theme_bw() +
   labs(x = "Time", title = "Gross primary productivity (GPP)") 
 
@@ -143,22 +142,15 @@ png("visualizations/flux_PAR_Vik.png", res = 300, units = "in", width = 10, heig
 dev.off()
 
 ## Hogsete ----
-min(cflux_hogsete$flux_corrected[cflux_hogsete$type=="ER"], na.rm = TRUE)
-max(cflux_hogsete$flux_corrected[cflux_hogsete$type=="ER"], na.rm = TRUE)
-
-min(cflux_hogsete$flux_corrected[cflux_hogsete$type=="GPP"], na.rm = TRUE)
-max(cflux_hogsete$flux_corrected[cflux_hogsete$type=="GPP"], na.rm = TRUE)
-
-hog.plot.er = plot.flux.time.site("Hogsete", "ER", "22:30", 0, 90, "Ecosystem respiration (ER)")
-hog.plot.gpp = plot.flux.time.site("Hogsete", "GPP", "22:30", -90, 0, "Gross primary productivity (GPP)")
+hog.plot.er = plot.flux.time.site("Hogsete", "ER", "22:30", 0, 130, "Ecosystem respiration (ER)") 
+hog.plot.gpp = plot.flux.time.site("Hogsete", "GPP", "22:30", -130, 0, "Gross primary productivity (GPP)")
 hog.plot.par = plot.par.time.site("Hogsete")
 
 hog.plot.gpp + hog.plot.par + hog.plot.er +
   plot_layout(ncol = 1, heights = c(2, 1, 2)) +
   plot_annotation(title = "Hogsete")
 
-png("visualizations/flux_PAR_Hog.png", res = 300, units = "in", width = 10, height = 10)
-dev.off()
+ggsave("visualizations/flux_PAR_Hog.png", units = "in", width = 10, height = 10)
 
 ## Joasete ----
 joa.plot.er = plot.flux.time.site("Joasete", "ER", "07:00", -70, 80, "Ecosystem respiration (ER)") +
