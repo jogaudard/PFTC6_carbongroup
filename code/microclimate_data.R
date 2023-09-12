@@ -1,6 +1,4 @@
 #Soil moisture function ----
-# NOTE: As of 2022.12.02 09:25 PST this script is ONLY for the PFTC6 C-flux microclimate data.
-# We also need to add in the data from Three-D.
 
 source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/Climate/soilmoisture_correction.R")
 
@@ -15,13 +13,13 @@ library(lubridate)
 get_file(node = "fcbw4",
          file = "PFTC6_microclimate_2022.zip",
          path = "raw_data",
-         remote_path = "raw_data/c_flux_raw_data")
+         remote_path = "raw_data/microclimate_raw_data")
 
 #Download microclimate metadata
 get_file(node = "fcbw4",
          file = "PFTC6_microclimate_metadata_all.csv",
          path = "raw_data",
-         remote_path = "raw_data/c_flux_raw_data")
+         remote_path = "raw_data/microclimate_raw_data")
 
 #Unzip microclimate data
 unzip("raw_data/PFTC6_microclimate_2022.zip", exdir = "raw_data/microclimate")
@@ -40,10 +38,12 @@ file.remove("raw_data/THREE-D_clean_microclimate_2019-2022.csv.zip") #let's free
 # Climate data ----
 ## Read in metadata ----
 # Read in meta data
-metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata.csv", col_types = "ffffffccccccccc") %>% #Note this file is American convention
+metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata_all.csv", col_types = "ffffffccccccccc") %>% #Note this file is American convention
   mutate(
-    datetime_in = ymd_hm(datetime_in), #dates in correct format
-    datetime_out = ymd_hms(datetime_out))  
+    datetime_in = mdy_hm(datetime_in), #dates in correct format
+    datetime_out = mdy_hm(datetime_out),
+    datetime_begin = mdy_hm(datetime_begin), 
+    datetime_end = mdy_hm(datetime_end))  
 ## Read in files ----
 ### PFTC6 ----
 # Make file list
@@ -51,10 +51,10 @@ filesPFTC6 <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", fu
 
 # Read in data
 tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
-    file %>% 
+  file %>% 
     set_names() %>% 
     map_df(~ read_csv2(file = file, col_names = FALSE, col_types = "dcdddddddl")) #important! read_csv2 reads in European format
-  }, .id = "File")%>%
+}, .id = "File")%>%
   # get logger ID 
   mutate(
     loggerID = str_sub(File, 28, 35), #adjust this for different file names
@@ -103,7 +103,7 @@ tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
 
 
 
-## make microclimate data ----
+# make microclimate data ----
 microclimate <- tempPFTC6 %>% 
   # bind_rows(tempThreeD) %>%
   # rename column names
@@ -114,7 +114,7 @@ microclimate <- tempPFTC6 %>%
   distinct() %>%
   #join metdata
   right_join(metatomst, by = "loggerID") %>%  #Right join to filter out irrelevant loggers
-# calculate soil moisture
+  # calculate soil moisture
   # This function is written by Aud. Link at top of script.
   mutate( 
     soil_moisture = soil.moist(
@@ -127,39 +127,35 @@ microclimate <- tempPFTC6 %>%
 
 # Clean data ----
 microclimate.clean = microclimate %>%
-  # Filter to times the sensor was in the soil
-  filter(datetime >= datetime_in & datetime <= datetime_out) %>%
+  # This is now either the full days of the flux observations (midnight to midnight)
+  # or when the sensor was in the soil
+  # whichever is longer
+  filter(datetime > datetime_begin & datetime < datetime_end) %>%
   mutate(
     cutting = case_when(
       # air colder than expected
-      sensor == "air_temperature" & value < -40 ~ "cut",
+      sensor == "air_temperature" & value < -40 ~ "cut_Tmin_air",
       # air warmer than expected
-      sensor == "air_temperature" & value > 30 ~ "cut",
+      sensor == "air_temperature" & value > 30 ~ "cut_Tmax_air",
       # ground colder than expected
-      sensor == "ground_temperature" & value < -40 ~ "cut",
+      sensor == "ground_temperature" & value < -40 ~ "cut_Tmin_ground",
       # ground warmer than expected
-      sensor == "ground_temperature" & value > 35 ~ "cut",
+      sensor == "ground_temperature" & value > 35 ~ "cut_Tmax_ground",
       # soil colder than expected
-      sensor == "soil_temperature" & value < 5 ~ "cut",
+      sensor == "soil_temperature" & value < 5 ~ "cut_Tmin_soil",
       # soil warmer than expected
-      sensor == "soil_temperature" & value > 20 ~ "cut",
+      sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
       # soil drier than expected
-      sensor == "soil_moisture" & value < 0 ~ "cut",
+      sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
       # soil wetter than expected
-      sensor == "soil_moisture" & value > 0.5 ~ "cut",
-      #Høgsete's time out seems to be wrong
-      site == "Hogsete" & datetime > ymd_hm("2022-07-31 06:45") ~ "cut",
-      #Vikesland's time out seems to be wrong
-      site == "Vikesland" & datetime > ymd_hm("2022-08-04 10:45") ~ "cut",
+      sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist",
       TRUE ~ "keep"
     )
   )
 
-
-
 # Graphs for visualizing cuts ----
-## Air temperature ----
-# microclimate.clean %>% filter(sensor == "air_temperature") %>% 
+# ## Air temperature ----
+# microclimate.clean %>% filter(sensor == "air_temperature") %>%
 #   ggplot(aes(x = datetime, y = value, color = cutting)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
@@ -173,7 +169,7 @@ microclimate.clean = microclimate %>%
 # ggsave("air_temperature.png", height = 40, width = 100, units = "cm", path = "graph_microclimate")
 # 
 # ## Ground temperature ----
-# ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"), 
+# ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"),
 #        aes(x = datetime, y = value, color = cutting)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
@@ -185,7 +181,7 @@ microclimate.clean = microclimate %>%
 #   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
 # 
 # ## Soil temperature ----
-# ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"), 
+# ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"),
 #        aes(x = datetime, y = value, color = cutting)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
@@ -197,7 +193,7 @@ microclimate.clean = microclimate %>%
 #   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
 # 
 # ## Soil moisture ----
-# ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"), 
+# ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"),
 #        aes(x = datetime, y = value, color = cutting)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
@@ -216,13 +212,13 @@ microclimate.export <- microclimate.clean %>%
   ) %>% 
   select(datetime, loggerID, turfID, site, sensor, value) %>% 
   distinct()
-  # group_by(datetime, loggerID, turfID, site, sensor, value) %>%
-  # mutate(
-  #   n = n()
-  # ) %>% 
-  # filter(n == 1) %>%  # we keep only the row that are unique
-  # select(!n) %>% 
-  # ungroup()
+# group_by(datetime, loggerID, turfID, site, sensor, value) %>%
+# mutate(
+#   n = n()
+# ) %>% 
+# filter(n == 1) %>%  # we keep only the row that are unique
+# select(!n) %>% 
+# ungroup()
 
 # taking Three-D data -----------------------------------------------------
 
@@ -271,26 +267,3 @@ microclimate.export %>%
   geom_point(size = 0.2)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_allsites_2022.csv")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
