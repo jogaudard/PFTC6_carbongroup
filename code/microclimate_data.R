@@ -53,7 +53,7 @@ filesPFTC6 <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", fu
 tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
     file %>% 
     set_names() %>% 
-    map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
+    map_df(~ read_csv2(file = file, col_names = FALSE, col_types = "dcdddddddl")) #important! read_csv2 reads in European format
   }, .id = "File")%>%
   # get logger ID 
   mutate(
