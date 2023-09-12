@@ -19,7 +19,7 @@ get_file(node = "fcbw4",
 
 #Download microclimate metadata
 get_file(node = "fcbw4",
-         file = "PFTC6_microclimate_metadata.csv",
+         file = "PFTC6_microclimate_metadata_all.csv",
          path = "raw_data",
          remote_path = "raw_data/c_flux_raw_data")
 
@@ -53,7 +53,7 @@ filesPFTC6 <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", fu
 tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
     file %>% 
     set_names() %>% 
-    map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
+    map_df(~ read_csv2(file = file, col_names = FALSE, col_types = "dcdddddddl")) #important! read_csv2 reads in European format
   }, .id = "File")%>%
   # get logger ID 
   mutate(
