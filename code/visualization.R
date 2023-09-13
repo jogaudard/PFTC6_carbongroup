@@ -75,7 +75,7 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
     name = as_factor(name),
     time = hms::as_hms(datetime),
     name = factor(name, levels = c("air_temperature", "ground_temperature", "soil_temperature", "soil_moisture", "PAR", "ER", "NEE", "GPP")), # we need to make sure everything is in the same order
-    site = factor(site, levels = c("liahovden", "joasete", "hogsete", "vikesland"))
+    site = factor(site, levels = c("vikesland", "hogsete", "joasete", "liahovden"))
   )
 
 # diurnal and density together (the figure for the datapaper) --------------------------------------------
