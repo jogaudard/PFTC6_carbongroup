@@ -126,7 +126,8 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
   mutate(
     name = as_factor(name),
     time = hms::as_hms(datetime),
-    name = factor(name, levels = c("air_temperature", "ground_temperature", "soil_temperature", "soil_moisture", "PAR", "ER", "NEE", "GPP")) # we need to make sure everything is in the same order
+    name = factor(name, levels = c("air_temperature", "ground_temperature", "soil_temperature", "soil_moisture", "PAR", "ER", "NEE", "GPP")), # we need to make sure everything is in the same order
+    site = factor(site, levels = c("liahovden", "joasete", "hogsete", "vikesland"))
   )
 
 # liahovden ---------------------------------------------------------------
@@ -223,97 +224,313 @@ microclimate %>%
 
 # diurnal and density together --------------------------------------------
 
-density_microclimate <- data_long %>% 
-  filter(
-    name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
-  ) %>% 
-  ggplot(aes(x=value, fill=site)) +
-  geom_density(alpha=0.6, linewidth = 0.8) +
-  scale_fill_viridis(discrete=T) +
-  facet_wrap(name~.,labeller = label_parsed, scales="free", ncol = 1) +
-  # labs(
-  #   y="Density",
-  #   x= "Value",
-  #   fill = "Site"
-  # ) +
-  # guides(fill = guide_legend(byrow = TRUE)) +
-  # guides(fill = "none") +
-  theme(legend.position="none",
-        strip.text.x = element_blank()
-        # axis.title.x = element_blank(),
-        # axis.title.y = element_blank()
-        # axis.text.x=element_blank(),
-        # axis.ticks.x=element_blank(),
-        # axis.text.y=element_blank(),
-        # axis.ticks.y=element_blank()
-        )
-  # theme_bw() 
+# font_size <- 7
+# 
+# density_microclimate <- data_long %>% 
+#   filter(
+#     name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
+#   ) %>% 
+#   ggplot(aes(x=value, fill=site)) +
+#   geom_density(alpha=0.6, linewidth = 0.8) +
+#   scale_fill_viridis(discrete=T) +
+#   scale_y_continuous(position = "right") +
+#   facet_wrap(name~.,labeller = label_parsed, scales="free", ncol = 1) +
+#   labs(
+#     y="Density",
+#     x= "Microclimate value"
+#     # fill = "Site"
+#   ) +
+#   # guides(fill = guide_legend(byrow = TRUE)) +
+#   # guides(fill = "none") +
+#   theme(legend.position="none",
+#         strip.text.x = element_blank(),
+#         text=element_text(size=font_size)
+#         # axis.title.x = element_blank(),
+#         # axis.title.y = element_blank()
+#         # axis.text.x=element_blank(),
+#         # axis.ticks.x=element_blank(),
+#         # axis.text.y=element_blank(),
+#         # axis.ticks.y=element_blank()
+#         )
+#   # theme_bw() 
+#   # theme(text = element_text(size=14),
+#   #       strip.text = element_text(colour = "black"),
+#   #       legend.spacing.y = unit(0.1,"cm"))
+# density_microclimate
+# 
+# diurnal_fluxes <- data_long %>% 
+#   filter(
+#     # name != "NEE"
+#     name %in% c("ER", "GPP", "NEE")
+#   ) %>%
+#   # arrange()
+#   ggplot(aes(time, value, color=site)) +
+#   geom_point(size=0.05) +
+#   geom_smooth() +
+#   facet_grid(name~., scales = "free") +
+#   scale_color_viridis(discrete=T) +
+#   # guides(fill = guide_legend(byrow = TRUE)) +
+#   theme_bw() +
+#   theme(legend.position="none") +
+#   labs(
+#     y="Fluxes",
+#     x= "Time"
+#     # fill = "Site"
+#   )
+# diurnal_fluxes
+# 
+# 
+# diurnal_microclimate <- data_long %>% 
+#   filter(
+#     # name != "NEE"
+#     name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
+#   ) %>%
+#   # arrange()
+#   ggplot(aes(time, value, color=site)) +
+#   geom_point(size=0.05) +
+#   geom_smooth() +
+#   facet_grid(name~.,
+#              scales = "free",
+#              labeller = labeller(name = c(
+#                air_temperature = "Air T°",
+#                ground_temperature = "Ground T°",
+#                soil_temperature = "Soil T°",
+#                soil_moisture = "Soil moisture",
+#                PAR = "PAR"
+#                ))
+#              ) +
+#   scale_color_viridis(discrete=T) +
+#   # guides(fill = guide_legend(byrow = TRUE)) +
+#   theme_bw() +
+#   labs(
+#     y="Microclimate value"
+#     # x= "Value"
+#     # fill = "Site"
+#   ) +
+#   theme(legend.position="none",
+#         axis.title.x = element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank()
+#         )
+# diurnal_microclimate
+# 
+# fluxes_cumul <- data_long %>% 
+#   filter(
+#     name %in% c("ER", "GPP", "NEE")
+#   ) %>% 
+#   # pivot_wider(names_from = "name", values_from = "value") %>%
+#   group_by(site, name, turfID) %>%
+#   summarise(
+#     cumul_flux = sum(value)
+#   ) %>% 
+#   ggplot(aes(y = cumul_flux, x = site, fill = site, color = site)) +
+#   geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+#   geom_jitter() +
+#   scale_fill_viridis(discrete=T, labels = c(
+#     hogsete = "Hogsete",
+#     joasete = "Joasete",
+#     liahovden = "Liahovden",
+#     vikesland = "Vikesland"
+#   )) +
+#   scale_color_viridis(discrete=T, labels = c(
+#     hogsete = "Hogsete",
+#     joasete = "Joasete",
+#     liahovden = "Liahovden",
+#     vikesland = "Vikesland"
+#   )) +
+#   scale_y_continuous(position = "right") +
+#   # scale_fill_manual(labels = c(
+#   #   hogsete = "Hogsete"
+#   # )) +
+#   labs(
+#     y="Cumulative fluxes",
+#     # x= "Value"
+#     fill = "Site",
+#     color = "Site"
+#   ) +
+#   facet_wrap(~name, scales = "free", ncol = 1) +
+#   # labs(x = "") +
+#   theme_bw() +
+#   theme(
+#         # legend.position = "none",
+#         strip.text.x = element_blank(),
+#         axis.title.x = element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank()
+#         # axis.text.y=element_blank(),
+#         # axis.ticks.y=element_blank()
+#         )
+#   # theme(legend.position = "none", 
+#   #       axis.text.x = element_text(angle = 45,vjust = 1, hjust=1))
+# fluxes_cumul
+#   # 
+#   # ggplot(cum_fluxes, aes(y = total.flux, x = site, fill = site, color = site)) +
+#   # geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+#   # geom_jitter() +
+#   # scale_fill_viridis(discrete=T)+
+#   # scale_color_viridis(discrete=T)+
+#   # facet_wrap(~type, scales = "free") +
+#   # labs(x = "") +
+#   # theme_bw() +
+#   # theme(legend.position = "none", 
+#   #       axis.text.x = element_text(angle = 45,vjust = 1, hjust=1))
+# # library(patchwork)
+# # full_figure <- diurnal | (density_microclimate / fluxes_cumul) +
+# # full_figure <- (density_microclimate / fluxes_cumul) | diurnal +
+# # full_figure <- (diurnal_microclimate / diurnal_fluxes) | (density_microclimate / fluxes_cumul) +
+# full_figure <- diurnal_microclimate + density_microclimate + diurnal_fluxes + fluxes_cumul +
+#   plot_layout(guides = "collect",
+#               ncol = 2,
+#               widths = c(3, 1),
+#               heights = c(5, 3)
+#               )
+# 
+# full_figure
+
+# Aud's idea to "save time" (haha)
+# edit: it was actually fast and it is super practical
+plots_making <- function(data_long, font_size)
+{
+  density_microclimate <- data_long %>% 
+    filter(
+      name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
+    ) %>% 
+    ggplot(aes(x=value, fill=site)) +
+    geom_density(alpha=0.6, linewidth = 0.8) +
+    scale_fill_viridis(discrete=T) +
+    scale_y_continuous(position = "right") +
+    facet_wrap(name~.,labeller = label_parsed, scales="free", ncol = 1) +
+    labs(
+      y="Density",
+      x= "Microclimate value"
+      # fill = "Site"
+    ) +
+    theme_bw() +
+    # guides(fill = guide_legend(byrow = TRUE)) +
+    # guides(fill = "none") +
+    theme(legend.position="none",
+          strip.text.x = element_blank(),
+          text=element_text(size=font_size)
+          # axis.title.x = element_blank(),
+          # axis.title.y = element_blank()
+          # axis.text.x=element_blank(),
+          # axis.ticks.x=element_blank(),
+          # axis.text.y=element_blank(),
+          # axis.ticks.y=element_blank()
+    )
   # theme(text = element_text(size=14),
   #       strip.text = element_text(colour = "black"),
   #       legend.spacing.y = unit(0.1,"cm"))
-density_microclimate
-
-diurnal_fluxes <- data_long %>% 
-  filter(
-    # name != "NEE"
-    name %in% c("ER", "GPP", "NEE")
-  ) %>%
-  # arrange()
-  ggplot(aes(time, value, color=site)) +
-  geom_point(size=0.05) +
-  geom_smooth() +
-  facet_grid(name~., scales = "free") +
-  scale_color_viridis(discrete=T) +
-  # guides(fill = guide_legend(byrow = TRUE)) +
-  theme_bw() +
-  theme(legend.position="none")
-diurnal_fluxes
-
-diurnal_microclimate <- data_long %>% 
-  filter(
-    # name != "NEE"
-    name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
-  ) %>%
-  # arrange()
-  ggplot(aes(time, value, color=site)) +
-  geom_point(size=0.05) +
-  geom_smooth() +
-  facet_grid(name~., scales = "free") +
-  scale_color_viridis(discrete=T) +
-  # guides(fill = guide_legend(byrow = TRUE)) +
-  theme_bw() +
-  theme(legend.position="none")
-diurnal_microclimate
-
-fluxes_cumul <- data_long %>% 
-  filter(
-    name %in% c("ER", "GPP", "NEE")
-  ) %>% 
-  # pivot_wider(names_from = "name", values_from = "value") %>%
-  group_by(site, name, turfID) %>%
-  summarise(
-    cumul_flux = sum(value)
-  ) %>% 
-  ggplot(aes(y = cumul_flux, x = site, fill = site, color = site)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter() +
-  scale_fill_viridis(discrete=T)+
-  scale_color_viridis(discrete=T)+
-  facet_wrap(~name, scales = "free", ncol = 1) +
-  # labs(x = "") +
-  theme_bw() +
-  theme(
-        # legend.position = "none",
-        strip.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()
-        # axis.text.y=element_blank(),
-        # axis.ticks.y=element_blank()
-        )
+  # density_microclimate
+  
+  diurnal_fluxes <- data_long %>% 
+    filter(
+      # name != "NEE"
+      name %in% c("ER", "GPP", "NEE")
+    ) %>%
+    # arrange()
+    ggplot(aes(time, value, color=site)) +
+    geom_point(size=0.05) +
+    geom_smooth() +
+    facet_grid(name~., scales = "free") +
+    scale_color_viridis(discrete=T) +
+    # guides(fill = guide_legend(byrow = TRUE)) +
+    theme_bw() +
+    theme(legend.position="none",
+          text=element_text(size=font_size)) +
+    labs(
+      y="Fluxes",
+      x= "Time"
+      # fill = "Site"
+    )
+  # diurnal_fluxes
+  
+  
+  diurnal_microclimate <- data_long %>% 
+    filter(
+      # name != "NEE"
+      name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
+    ) %>%
+    # arrange()
+    ggplot(aes(time, value, color=site)) +
+    geom_point(size=0.05) +
+    geom_smooth() +
+    facet_grid(name~.,
+               scales = "free",
+               labeller = labeller(name = c(
+                 air_temperature = "Air T°",
+                 ground_temperature = "Ground T°",
+                 soil_temperature = "Soil T°",
+                 soil_moisture = "Soil moisture",
+                 PAR = "PAR"
+               ))
+    ) +
+    scale_color_viridis(discrete=T) +
+    # guides(fill = guide_legend(byrow = TRUE)) +
+    theme_bw() +
+    labs(
+      y="Microclimate value"
+      # x= "Value"
+      # fill = "Site"
+    ) +
+    theme(legend.position="none",
+          axis.title.x = element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          text=element_text(size=font_size)
+    )
+  # diurnal_microclimate
+  
+  fluxes_cumul <- data_long %>% 
+    filter(
+      name %in% c("ER", "GPP", "NEE")
+    ) %>% 
+    # pivot_wider(names_from = "name", values_from = "value") %>%
+    group_by(site, name, turfID) %>%
+    summarise(
+      cumul_flux = sum(value)
+    ) %>% 
+    ggplot(aes(y = cumul_flux, x = site, fill = site, color = site)) +
+    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+    geom_jitter() +
+    scale_fill_viridis(discrete=T, labels = c(
+      hogsete = "Hogsete",
+      joasete = "Joasete",
+      liahovden = "Liahovden",
+      vikesland = "Vikesland"
+    )) +
+    scale_color_viridis(discrete=T, labels = c(
+      hogsete = "Hogsete",
+      joasete = "Joasete",
+      liahovden = "Liahovden",
+      vikesland = "Vikesland"
+    )) +
+    scale_y_continuous(position = "right") +
+    # scale_fill_manual(labels = c(
+    #   hogsete = "Hogsete"
+    # )) +
+    labs(
+      y="Cumulative fluxes",
+      # x= "Value"
+      fill = "Site",
+      color = "Site"
+    ) +
+    facet_wrap(~name, scales = "free", ncol = 1) +
+    # labs(x = "") +
+    theme_bw() +
+    theme(
+      # legend.position = "none",
+      strip.text.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.text.x=element_blank(),
+      axis.ticks.x=element_blank(),
+      text=element_text(size=font_size)
+      # axis.text.y=element_blank(),
+      # axis.ticks.y=element_blank()
+    )
   # theme(legend.position = "none", 
   #       axis.text.x = element_text(angle = 45,vjust = 1, hjust=1))
-fluxes_cumul
+  # fluxes_cumul
   # 
   # ggplot(cum_fluxes, aes(y = total.flux, x = site, fill = site, color = site)) +
   # geom_boxplot(alpha = 0.5, outlier.shape = NA) +
@@ -325,19 +542,22 @@ fluxes_cumul
   # theme_bw() +
   # theme(legend.position = "none", 
   #       axis.text.x = element_text(angle = 45,vjust = 1, hjust=1))
-# library(patchwork)
-# full_figure <- diurnal | (density_microclimate / fluxes_cumul) +
-# full_figure <- (density_microclimate / fluxes_cumul) | diurnal +
-# full_figure <- (diurnal_microclimate / diurnal_fluxes) | (density_microclimate / fluxes_cumul) +
-full_figure <- diurnal_microclimate + density_microclimate + diurnal_fluxes + fluxes_cumul +
-  plot_layout(guides = "collect",
-              ncol = 2,
-              widths = c(3, 1)
-              )
+  # library(patchwork)
+  # full_figure <- diurnal | (density_microclimate / fluxes_cumul) +
+  # full_figure <- (density_microclimate / fluxes_cumul) | diurnal +
+  # full_figure <- (diurnal_microclimate / diurnal_fluxes) | (density_microclimate / fluxes_cumul) +
+  full_figure <- diurnal_microclimate + density_microclimate + diurnal_fluxes + fluxes_cumul +
+    plot_layout(guides = "collect",
+                ncol = 2,
+                widths = c(3, 1),
+                heights = c(5, 3)
+    ) +
+    plot_annotation(tag_levels = 'A')
+  
+  return(full_figure)
+}
 
-full_figure
-
-
+plots_making(data_long, 9)
 
 # full_figure <- ggarrange(
 #   diurnal,
