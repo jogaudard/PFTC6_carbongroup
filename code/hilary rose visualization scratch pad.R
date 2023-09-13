@@ -18,19 +18,32 @@ meta_seedclim <- tibble(
 cflux_all = cflux_vikesland %>%
   bind_rows(cflux_hogsete) %>%
   bind_rows(cflux_liahovden) %>%
+  bind_rows(cflux_joasete) %>%
   left_join(meta_seedclim) %>%
   mutate(datetime = ymd_hms(datetime),
-    time = as_hms(datetime))
+    time = as_hms(datetime)) %>%
+  mutate(destSiteID = factor(destSiteID, levels = c("Lia", "Joa", "Hog", "Vik"), 
+                             labels = c("Liahovden", "Joasete", "Hogsete", "Vikesland")))
 
 colnames(cflux_all)
+
+# Flux read in for new clean data April 2023
+cflux_all = read.csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
 
 # Scratch plot for GPP ~ PAR ----
 
 ggplot(cflux_all %>% filter(type == "GPP"), aes(y = flux, x = PARavg, color = destSiteID, shape = warming)) +
   geom_point() +
-  geom_smooth() +
-  scale_x_log10() +
-  theme_bw()
+  geom_smooth(method = "lm", formula = y~poly(x,2), aes(linetype = warming)) +
+  scale_color_manual(values = c("#005a32", "#238443", "#41ab5d", "#78c679")) +
+  # scale_x_log10() +
+  facet_grid(destSiteID ~.) +
+  labs(x = "Light (PAR)", y = "Photosynthesis (GPP)") +
+  theme_bw() +
+  theme(legend.position="none")
+
+png("visualizations/fluxvpar.png", res = 300, units = "in", width = 8, height = 8)
+dev.off()
 
 # Scratch plot for time ----
 hog.plot.er = 
@@ -47,8 +60,7 @@ hog.plot.er =
         strip.text.y = element_blank())+
   labs(title = "Ecosystem respiration (ER)", x = "Time") 
 
-hog.plot.gpp = 
-  ggplot(cflux_all %>% filter(origSiteID == "Hog") %>% filter(type == "GPP"), 
+ggplot(cflux_all %>% filter(origSiteID == "Hog") %>% filter(type == "GPP"), 
          aes(y = flux, x = time, color = warming)) +
   # geom_line(inherit.aes = FALSE, aes(x = time, y = log(PARavg)), 
   #           color = "goldenrod1") +
@@ -57,6 +69,7 @@ hog.plot.gpp =
   geom_point() +
   geom_smooth(method = "loess", span = 0.3) +
   geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
+  geom_vline(xintercept = lubridate::hm("22:30"), linetype = "dotted") +
   scale_color_manual(values = c("dodgerblue4", "firebrick4")) +
   facet_grid(type ~.) +
   theme_bw() +
