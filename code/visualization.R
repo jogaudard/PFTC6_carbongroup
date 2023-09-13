@@ -431,7 +431,7 @@ plots_making <- function(data_long, font_size)
     # arrange()
     ggplot(aes(time, value, color=site)) +
     geom_point(size=0.05) +
-    geom_smooth() +
+    geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~., scales = "free") +
     scale_color_viridis(discrete=T) +
     # guides(fill = guide_legend(byrow = TRUE)) +
@@ -454,7 +454,7 @@ plots_making <- function(data_long, font_size)
     # arrange()
     ggplot(aes(time, value, color=site)) +
     geom_point(size=0.05) +
-    geom_smooth() +
+    geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~.,
                scales = "free",
                labeller = labeller(name = c(
@@ -549,7 +549,7 @@ plots_making <- function(data_long, font_size)
   full_figure <- diurnal_microclimate + density_microclimate + diurnal_fluxes + fluxes_cumul +
     plot_layout(guides = "collect",
                 ncol = 2,
-                widths = c(3, 1),
+                widths = c(2, 1),
                 heights = c(5, 3)
     ) +
     plot_annotation(tag_levels = 'A')
@@ -558,6 +558,7 @@ plots_making <- function(data_long, font_size)
 }
 
 plots_making(data_long, 9)
+ggsave("PFTC6datapaper_figure.png", width = 14, height = 12, units = "in")
 
 # full_figure <- ggarrange(
 #   diurnal,
