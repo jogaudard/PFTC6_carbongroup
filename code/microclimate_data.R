@@ -2,6 +2,10 @@
 
 source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/Climate/soilmoisture_correction.R")
 
+# metadata
+
+source("code/metaturf.R")
+
 # Fetch the data -----
 
 library(dataDownloader)
@@ -43,7 +47,10 @@ metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata_all.csv", col_types 
     datetime_in = mdy_hm(datetime_in), #dates in correct format
     datetime_out = mdy_hm(datetime_out),
     datetime_begin = mdy_hm(datetime_begin), 
-    datetime_end = mdy_hm(datetime_end))  
+    datetime_end = mdy_hm(datetime_end),
+    destSiteID = str_sub(site, 1, 3) #we want three letters code for siteID and have to specify this is destination site because of the transplanting treatment
+    ) %>% 
+  select(!site)
 ## Read in files ----
 ### PFTC6 ----
 # Make file list
@@ -210,7 +217,7 @@ microclimate.export <- microclimate.clean %>%
   filter(
     cutting == "keep"
   ) %>% 
-  select(datetime, loggerID, turfID, site, sensor, value) %>% 
+  select(datetime, loggerID, turfID, destSiteID, sensor, value) %>% 
   distinct()
 # group_by(datetime, loggerID, turfID, site, sensor, value) %>%
 # mutate(
@@ -231,9 +238,9 @@ threeD_microclimate <- threeD_microclimate_all %>%
     & date_time <= ymd("2022-08-05")
   ) %>%
   mutate(
-    loggerID = as_factor(loggerID),
+    loggerID = as_factor(loggerID)
     # site = str_replace_all(destSiteID, c("Joa", "Vik", "Lia"), c("Joasete", "Vikesland", "Liahovden"))
-    site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
+    # site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
   ) %>% 
   rename(
     datetime = date_time,
@@ -242,11 +249,12 @@ threeD_microclimate <- threeD_microclimate_all %>%
     datetime_out = end_date_time,
     soil_moisture = soilmoisture
   ) %>% 
-  select(datetime, loggerID, turfID, site, soil_temperature, ground_temperature, air_temperature, soil_moisture, shake, error_flag, datetime_in, datetime_out) %>% 
+  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>% 
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
 
 microclimate.export <- microclimate.export %>% 
-  bind_rows(threeD_microclimate)
+  # bind_rows(threeD_microclimate) %>% 
+  left_join(metaturf)
 
 
 # more graphs to see the trends per site ----------------------------------
@@ -255,7 +263,7 @@ microclimate.export %>%
   filter(
     sensor != "soil_moisture"
   ) %>% 
-  ggplot(aes(datetime, value, color = site)) +
+  ggplot(aes(datetime, value, color = destSiteID)) +
   geom_point(size = 0.2) +
   facet_grid(sensor~.)
 
@@ -263,7 +271,7 @@ microclimate.export %>%
   filter(
     sensor == "soil_moisture"
   ) %>% 
-  ggplot(aes(datetime, value, color = site)) +
+  ggplot(aes(datetime, value, color = destSiteID)) +
   geom_point(size = 0.2)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_allsites_2022.csv")
