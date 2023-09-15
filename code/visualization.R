@@ -50,15 +50,22 @@ microclimate <- microclimate %>%
 
 # need to fill the NA in fluxes with average of two points that bookend the missing data so that cumulative plots make sense
 
-# how many are missing?
-# count_missing <- fluxes %>% 
-#   # drop_na(flux_corrected) %>% 
-#   group_by(destSiteID, turfID, type) %>% 
-#   summarise(
-#     nobs = length(flux_corrected)
-#   )
-# 
-
+fluxes <- fluxes %>%
+  group_by(turfID, type) %>%
+  arrange(datetime) %>% # just to be sure
+  # Hacking tidyverse to take means of rows above and below
+  mutate(downup = flux_corrected,
+         updown = flux_corrected)  %>%
+  fill(downup, .direction = "downup") %>%
+  fill(updown, .direction = "updown") %>%
+  rowwise() %>%
+  mutate(
+    # mean = mean(c(downup, updown))
+    flux_corrected = replace_na(flux_corrected, mean(c(downup, updown)))
+  ) %>%
+  select(!c(downup, updown))
+  
+  
   
 # arranging the data ------------------------------------------------------
 
