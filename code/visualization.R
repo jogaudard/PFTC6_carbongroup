@@ -3,7 +3,8 @@ my_packages <- c("dataDownloader",
                  "lubridate",
                  "ggpubr",
                  "viridis",
-                 "patchwork"
+                 "patchwork",
+                 "hms"
 )
 
 lapply(my_packages, library, character.only = TRUE) 
@@ -27,7 +28,7 @@ microclimate <- read_csv("clean_data/PFTC6_microclimate_allsites_2022.csv") %>%
     destSiteID = as_factor(destSiteID)
   )
 
-# need to cut fluxes so we match the time window of the fluxes
+# need to cut microclimate so we match the time window of the fluxes
 
 fluxes_startstop <- fluxes %>% 
   group_by(destSiteID) %>% 
@@ -47,8 +48,18 @@ microclimate <- microclimate %>%
     & !(datetime > ymd_hms("2022-07-29T03:10:00") & datetime < ymd_hms("2022-07-30T03:10:00"))
   )
 
+# need to fill the NA in fluxes with average of two points that bookend the missing data so that cumulative plots make sense
 
+# how many are missing?
+# count_missing <- fluxes %>% 
+#   # drop_na(flux_corrected) %>% 
+#   group_by(destSiteID, turfID, type) %>% 
+#   summarise(
+#     nobs = length(flux_corrected)
+#   )
+# 
 
+  
 # arranging the data ------------------------------------------------------
 
 # first we need to arrange the data in a weirdly mixed long format, microclimate and fluxes together
@@ -74,7 +85,7 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
   drop_na(value) %>% #because of the two pivots we created a lot of empty useless rows
   mutate( #making things easier to make graphs later
     name = as_factor(name),
-    time = hms::as_hms(datetime),
+    time = as_hms(datetime),
     name = factor(name, levels = c("air_temperature", "ground_temperature", "soil_temperature", "soil_moisture", "PAR", "ER", "NEE", "GPP")), # we need to make sure everything is in the same order
     destSiteID = factor(destSiteID, levels = c("Vik", "Hog", "Joa", "Lia"))
   )
