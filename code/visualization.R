@@ -81,10 +81,18 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
 
 # diurnal and density together (the figure for the datapaper) --------------------------------------------
 
+# to have the vertical lines showing when fluxes started
+
+fluxstarttimes <- tibble(
+  site = factor(c("Vik", "Hog", "Joa", "Lia")),
+  starttime = c("21:10", "22:30", "07:00", "05:20")
+)
+
+
 # Aud's idea to "save time" (haha):
 # put everything in a function, that way we can re generate the graphs all together when we change something
 # edit: it was actually fast and it is super practical
-plots_making <- function(data_long, font_size)
+plots_making <- function(data_long, fluxstarttimes, font_size)
 {
   density_microclimate <- data_long %>% 
     filter( #we just want microclimate
@@ -112,11 +120,14 @@ plots_making <- function(data_long, font_size)
     ) %>%
     ggplot(aes(time, value, color=destSiteID)) +
     geom_point(size=0.05) +
+    geom_vline(data = fluxstarttimes, 
+               aes(xintercept = lubridate::hm(starttime), color = site), linetype = "dotted") +
     geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~., scales = "free") +
     scale_color_viridis(discrete=T) +
     theme_bw() +
     theme(legend.position="none",
+          axis.title.x = element_blank(),
           text=element_text(size=font_size)) +
     labs(
       y="Fluxes",
@@ -147,9 +158,9 @@ plots_making <- function(data_long, font_size)
       y="Microclimate value"
     ) +
     theme(legend.position="none",
-          axis.title.x = element_blank(),
-          axis.text.x=element_blank(),
-          axis.ticks.x=element_blank(),
+          # axis.title.x = element_blank(),
+          # axis.text.x=element_blank(),
+          # axis.ticks.x=element_blank(),
           text=element_text(size=font_size)
     )
   
@@ -177,6 +188,12 @@ plots_making <- function(data_long, font_size)
       Vik = "Vikesland"
     )) +
     scale_y_continuous(position = "right") +
+    scale_x_discrete(labels = c(
+      Hog = "Hogsete",
+      Joa = "Joasete",
+      Lia = "Liahovden",
+      Vik = "Vikesland"
+    )) +
     labs(
       y="Cumulative fluxes",
       fill = "Site",
@@ -192,18 +209,19 @@ plots_making <- function(data_long, font_size)
       text=element_text(size=font_size)
     )
   
-  patchwork <- diurnal_microclimate + density_microclimate + diurnal_fluxes + fluxes_cumul +
+  patchwork <- diurnal_fluxes + fluxes_cumul + diurnal_microclimate + density_microclimate +
     plot_layout(guides = "collect",
                 ncol = 2,
                 widths = c(2, 1),
-                heights = c(5, 3) #this ratio makes sure all the diurnals have the same heigt
+                heights = c(3, 5) #this ratio makes sure all the diurnals have the same heigt
     ) +
     plot_annotation(tag_levels = 'A')
   
   return(patchwork)
 }
 
-plots_making(data_long, 11)
+
+plots_making(data_long, fluxstarttimes, 11)
 ggsave("PFTC6datapaper_figure.png", width = 14, height = 12, units = "in")
 
 
