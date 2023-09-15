@@ -236,12 +236,12 @@ GPP_corr.PFTC6 <- function(fluxes, start_night = "23:00:00", end_night = "04:00:
   fluxes_corr <- fluxes %>% 
     mutate(
       datetime = ymd_hms(datetime),
-      time = hms::as_hms(datetime),
+      time = as_hms(datetime),
       # time = hms(time),
       type = as_factor(type),
       difference = case_when(
         type == "GPP" 
-        & (time >= hms(start_night) | time <= hms(end_night))
+        & (time >= lubridate::hms(start_night) | time <= lubridate::hms(end_night))
         & flux > 0 
         ~ flux
       ),
