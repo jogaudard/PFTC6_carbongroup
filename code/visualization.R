@@ -22,23 +22,24 @@ fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
 
 microclimate <- read_csv("clean_data/PFTC6_microclimate_allsites_2022.csv") %>% 
   mutate(
-    site = str_to_lower(site),
-    site = as_factor(site)
+    # site = str_to_lower(site),
+    # site = as_factor(site)
+    destSiteID = as_factor(destSiteID)
   )
 
 # need to cut fluxes so we match the time window of the fluxes
 
 fluxes_startstop <- fluxes %>% 
-  group_by(site) %>% 
+  group_by(destSiteID) %>% 
   mutate(
     start = min(datetime),
     stop = max(datetime)
   ) %>% 
-  select(site, start, stop) %>% 
+  select(destSiteID, start, stop) %>% 
   unique()
 
 microclimate <- microclimate %>% 
-  left_join(fluxes_startstop, by = "site") %>% 
+  left_join(fluxes_startstop, by = "destSiteID") %>% 
   filter(
     datetime <= stop
     & datetime >= start
@@ -51,7 +52,7 @@ microclimate <- microclimate %>%
 # arranging the data ------------------------------------------------------
 
 # first we need to arrange the data in a weirdly mixed long format, microclimate and fluxes together
-data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_corrected", "site", "turfID")) %>%
+data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_corrected", "destSiteID", "turfID")) %>%
   mutate(
     PAR = case_when(
       type == "GPP" ~ PARavg,
@@ -60,13 +61,13 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
     type = case_when(
       is.na(type) ~ sensor, #include the microclimate sensor in the type column
       TRUE ~ type
-    ),
-    site = str_to_lower(site)
+    )
+    # site = str_to_lower(site)
   ) %>%
   # filter(
   #   type != "NEE" #just in case we are not interested in NEE
   # ) %>% 
-  select(type, PAR, datetime, site, value, turfID) %>% 
+  select(type, PAR, datetime, destSiteID, value, turfID) %>% 
   rowid_to_column("rowID") %>% #makes each rows unique, helps with pivot wider
   pivot_wider(names_from = "type", values_from = "value") %>% #just a trick to get all the value in the same column (PAR has its own column)
   pivot_longer(cols = c(PAR, GPP, ER, NEE, air_temperature, soil_temperature, ground_temperature, soil_moisture)) %>% 
@@ -75,7 +76,7 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
     name = as_factor(name),
     time = hms::as_hms(datetime),
     name = factor(name, levels = c("air_temperature", "ground_temperature", "soil_temperature", "soil_moisture", "PAR", "ER", "NEE", "GPP")), # we need to make sure everything is in the same order
-    site = factor(site, levels = c("vikesland", "hogsete", "joasete", "liahovden"))
+    destSiteID = factor(destSiteID, levels = c("Vik", "Hog", "Joa", "Lia"))
   )
 
 # diurnal and density together (the figure for the datapaper) --------------------------------------------
@@ -89,7 +90,7 @@ plots_making <- function(data_long, font_size)
     filter( #we just want microclimate
       name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
     ) %>% 
-    ggplot(aes(x=value, fill=site)) +
+    ggplot(aes(x=value, fill=destSiteID)) +
     geom_density(alpha=0.6, linewidth = 0.8) +
     scale_fill_viridis(discrete=T) +
     scale_y_continuous(position = "right") +
@@ -109,7 +110,7 @@ plots_making <- function(data_long, font_size)
       # name != "NEE" # in case we are not intersted in NEE
       name %in% c("ER", "GPP", "NEE")
     ) %>%
-    ggplot(aes(time, value, color=site)) +
+    ggplot(aes(time, value, color=destSiteID)) +
     geom_point(size=0.05) +
     geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~., scales = "free") +
@@ -127,7 +128,7 @@ plots_making <- function(data_long, font_size)
     filter(
       name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
     ) %>%
-    ggplot(aes(time, value, color=site)) +
+    ggplot(aes(time, value, color=destSiteID)) +
     geom_point(size=0.05) +
     geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~.,
@@ -156,24 +157,24 @@ plots_making <- function(data_long, font_size)
     filter(
       name %in% c("ER", "GPP", "NEE")
     ) %>% 
-    group_by(site, name, turfID) %>% 
+    group_by(destSiteID, name, turfID) %>% 
     summarise(
       cumul_flux = sum(value) # we sum each fluxes for each turfID
     ) %>% 
-    ggplot(aes(y = cumul_flux, x = site, fill = site, color = site)) +
+    ggplot(aes(y = cumul_flux, x = destSiteID, fill = destSiteID, color = destSiteID)) +
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     geom_jitter() +
     scale_fill_viridis(discrete=T, labels = c( #this is the plot providing the legend to the patchwork
-      hogsete = "Hogsete",
-      joasete = "Joasete",
-      liahovden = "Liahovden",
-      vikesland = "Vikesland"
+      Hog = "Hogsete",
+      Joa = "Joasete",
+      Lia = "Liahovden",
+      Vik = "Vikesland"
     )) +
     scale_color_viridis(discrete=T, labels = c(
-      hogsete = "Hogsete",
-      joasete = "Joasete",
-      liahovden = "Liahovden",
-      vikesland = "Vikesland"
+      Hog = "Hogsete",
+      Joa = "Joasete",
+      Lia = "Liahovden",
+      Vik = "Vikesland"
     )) +
     scale_y_continuous(position = "right") +
     labs(
@@ -186,7 +187,7 @@ plots_making <- function(data_long, font_size)
     theme(
       strip.text.x = element_blank(),
       axis.title.x = element_blank(),
-      axis.text.x=element_blank(),
+      # axis.text.x=element_blank(),
       axis.ticks.x=element_blank(),
       text=element_text(size=font_size)
     )
