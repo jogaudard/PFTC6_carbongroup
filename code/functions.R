@@ -152,13 +152,13 @@ fluxes_GPP <- fluxes %>%
     turfID = as_factor(turfID),
     type = as_factor(type)
   ) %>% 
-  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux, fluxID, flag, flux_noflag) %>%
+  select(pairID, PARavg, temp_soilavg, turfID, type, datetime, flux, fluxID, flag, flux_noflag, temp_airavg) %>%
   # select(!c(fluxID, adj.r.squared, p.value)) %>%
   # select(!c(fluxID)) %>% 
   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
   # select(!c(PAR_corrected_flux)) %>%
   # select(campaign, turfID, date, type, corrected_flux) %>%
-  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg, fluxID, flag, flux_noflag)) %>% 
+  pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg, fluxID, flag, flux_noflag, temp_airavg)) %>% 
   
   # pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
   rename(
@@ -173,7 +173,14 @@ fluxes_GPP <- fluxes %>%
     temp_soil = case_when(
       type == "ER" ~ temp_soilavg_ER,
       type == "NEE" ~ temp_soilavg_NEE,
-      type == "GPP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
+      # type == "GPP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
+      type == "GPP" ~ NA_real_ # I think it should be NA as it was not measured. The average is not really telling anything.
+    ),
+    temp_airavg = case_when(
+      type == "ER" ~ temp_airavg_ER,
+      type == "NEE" ~ temp_airavg_NEE,
+      # type == "GPP" ~ rowMeans(select(., c(temp_airavg_NEE, temp_airavg_ER)), na.rm = TRUE)
+      type == "GPP" ~ NA_real_
     ),
     PARavg = case_when(
       type == "ER" ~ PARavg_ER,
@@ -222,7 +229,9 @@ fluxes_GPP <- fluxes %>%
     flag_NEE,
     flag_ER,
     flux_noflag_NEE,
-    flux_noflag_ER
+    flux_noflag_ER,
+    temp_airavg_NEE,
+    temp_airavg_ER
     ))
 
 return(fluxes_GPP)
@@ -1263,8 +1272,8 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
     group_by(fluxID) %>% 
     summarise(
       PARavg = mean(PAR, na.rm = TRUE), #mean value of PAR for each flux
-      temp_airavg = mean(temp_air, na.rm = TRUE)  #mean value of temp_air for each flux
-      + 273.15, #transforming in kelvin for calculation
+      temp_airavg = mean(temp_air, na.rm = TRUE),  #mean value of temp_air for each flux
+      # + 273.15, #transforming in kelvin for calculation
       temp_soilavg = mean(temp_soil, na.rm = TRUE) #mean value of temp_soil for each flux
     ) %>% 
     ungroup()
@@ -1280,19 +1289,20 @@ flux.calc.zhao18 <- function(co2conc, # dataset of slopes per fluxID and environ
       datetime = start_window
     ) %>% 
     mutate(
-      flux = (slope * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
+      flux = (slope * atm_pressure * vol)/(R * (temp_airavg + 273.15) * plot_area) #gives flux in micromol/s/m^2
       *3600 #secs to hours
       /1000, #micromol to mmol
       # PARavg = case_when(
       #   type == "ER" ~ NA_real_,
       #   type == "NEE" ~ PARavg
       # )
-      flux_noflag = (slope_noflag * atm_pressure * vol)/(R * temp_airavg * plot_area) #gives flux in micromol/s/m^2
+      flux_noflag = (slope_noflag * atm_pressure * vol)/(R * (temp_airavg + 273.15) * plot_area) #gives flux in micromol/s/m^2
       *3600 #secs to hours
       /1000
     ) %>% #flux is now in mmol/m^2/h, which is more common
     arrange(datetime) %>% 
-    select(!c(slope, temp_airavg))
+    # select(!c(slope, temp_airavg))
+    select(!slope)
   
   return(fluxes_final)
   
