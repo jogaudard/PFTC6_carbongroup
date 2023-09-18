@@ -15,7 +15,7 @@ get_file(node = "fcbw4",
          remote_path = "c_flux_data")
 
 get_file(node = "fcbw4",
-         file = "PFTC6_microclimate_allsites_2022.csv", #this version of the file has big holes, trying to figure out with Hilary what happened
+         file = "PFTC6_microclimate_allsites_2022.csv",
          path = "clean_data",
          remote_path = "microclimate")
 
