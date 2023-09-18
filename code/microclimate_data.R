@@ -25,6 +25,7 @@ get_file(node = "fcbw4",
          path = "raw_data",
          remote_path = "raw_data/microclimate_raw_data")
 
+
 #Unzip microclimate data
 unzip("raw_data/PFTC6_microclimate_2022.zip", exdir = "raw_data/microclimate")
 file.remove("raw_data/PFTC6_microclimate_2022.zip") #let's free some space
@@ -46,11 +47,28 @@ metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata_all.csv", col_types 
   mutate(
     datetime_in = mdy_hm(datetime_in), #dates in correct format
     datetime_out = mdy_hm(datetime_out),
-    datetime_begin = mdy_hm(datetime_begin), 
-    datetime_end = mdy_hm(datetime_end),
+    # datetime_begin = mdy_hm(datetime_begin), 
+    # datetime_end = mdy_hm(datetime_end),
     destSiteID = str_sub(site, 1, 3) #we want three letters code for siteID and have to specify this is destination site because of the transplanting treatment
     ) %>% 
   select(!site)
+
+# modifying metadata to have a dataset that covers as much as possible of the course (23.07.2022 to 07.08.2022), but not more
+course_start <- ymd_hms("2022-07-23T00:00:01")
+course_end <- ymd_hms("2022-08-08T00:00:01")
+
+metatomst <- metatomst %>% 
+  mutate(
+    datetime_begin = case_when(
+      datetime_in <= course_start ~ course_start,
+      datetime_in > course_start ~ datetime_in
+    ),
+    datetime_end = case_when(
+      datetime_out >= course_end ~ course_end,
+      datetime_out < course_end ~ datetime_out
+    )
+  )
+
 ## Read in files ----
 ### PFTC6 ----
 # Make file list
@@ -234,8 +252,8 @@ threeD_microclimate_all <- read_csv("raw_data/microclimate/THREE-D_clean_microcl
 threeD_microclimate <- threeD_microclimate_all %>% 
   filter(
     # year(date_time) == 2022
-    date_time >= ymd("2022-07-23")
-    & date_time <= ymd("2022-08-05")
+    date_time >= course_start
+    & date_time <= course_end
   ) %>%
   mutate(
     loggerID = as_factor(loggerID)
@@ -253,7 +271,7 @@ threeD_microclimate <- threeD_microclimate_all %>%
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
 
 microclimate.export <- microclimate.export %>% 
-  # bind_rows(threeD_microclimate) %>% 
+  bind_rows(threeD_microclimate) %>%
   left_join(metaturf)
 
 
