@@ -59,11 +59,11 @@ course_end <- ymd_hms("2022-08-08T00:00:01")
 
 metatomst <- metatomst %>% 
   mutate(
-    datetime_begin = case_when(
+    datetime_in = case_when(
       datetime_in <= course_start ~ course_start,
       datetime_in > course_start ~ datetime_in
     ),
-    datetime_end = case_when(
+    datetime_out = case_when(
       datetime_out >= course_end ~ course_end,
       datetime_out < course_end ~ datetime_out
     )
@@ -155,7 +155,7 @@ microclimate.clean = microclimate %>%
   # This is now either the full days of the flux observations (midnight to midnight)
   # or when the sensor was in the soil
   # whichever is longer
-  filter(datetime > datetime_begin & datetime < datetime_end) %>%
+  filter(datetime > datetime_in & datetime < datetime_out) %>%
   mutate(
     flag = case_when(
       # air colder than expected
@@ -171,9 +171,9 @@ microclimate.clean = microclimate %>%
       # soil warmer than expected
       sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
       # soil drier than expected
-      sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
-      # soil wetter than expected
-      sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
+      sensor == "soil_moisture" & value < 0 ~ "cut_min_moist"
+      # # soil wetter than expected # no such thing in wester Norway
+      # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
       # TRUE ~ "keep"
     ),
     value = case_when(
@@ -181,7 +181,7 @@ microclimate.clean = microclimate %>%
       is.na(flag) ~ value
     )
   ) %>% 
-  select(datetime, loggerID, turfID, destSiteID, sensor, value, flag) %>% 
+  select(datetime, loggerID, turfID, destSiteID, sensor, value, flag, datetime_in, datetime_out) %>% 
     distinct()
 
 # Graphs for visualizing cuts ----
@@ -287,8 +287,8 @@ threeD_microclimate <- threeD_microclimate_all %>%
         sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
         # soil drier than expected
         sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
-        # soil wetter than expected
-        sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
+        # soil wetter than expected #no such thing in Western Norway
+        # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
         # TRUE ~ "keep"
       ),
     value = case_when(
@@ -298,7 +298,7 @@ threeD_microclimate <- threeD_microclimate_all %>%
     # site = str_replace_all(destSiteID, c("Joa", "Vik", "Lia"), c("Joasete", "Vikesland", "Liahovden"))
     # site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
     ) %>% 
-      select(datetime, loggerID, turfID, destSiteID, sensor, value, flag) %>% 
+      select(datetime, loggerID, turfID, destSiteID, sensor, value, flag, datetime_in, datetime_out) %>% 
       distinct()
 
 # to write number of flags in data paper
