@@ -12,12 +12,12 @@ lapply(my_packages, library, character.only = TRUE)
 get_file(node = "fcbw4",
          file = "PFTC6_24h_cflux_allsites_2022.csv",
          path = "clean_data",
-         remote_path = "c_flux_data")
+         remote_path = "v. c_flux_data")
 
 get_file(node = "fcbw4",
          file = "PFTC6_microclimate_allsites_2022.csv",
          path = "clean_data",
-         remote_path = "microclimate")
+         remote_path = "vii. microclimate")
 
 fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
 
@@ -148,7 +148,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
           axis.title.x = element_blank(),
           text=element_text(size=font_size)) +
     labs(
-      y="Fluxes",
+      y="Fluxes (mmol/sqm/h)",
       x= "Time"
     )
   
@@ -173,7 +173,8 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
     scale_color_viridis(discrete=T) +
     theme_bw() +
     labs(
-      y="Microclimate value"
+      y="Microclimate value",
+      x= "Time"
     ) +
     theme(legend.position="none",
           # axis.title.x = element_blank(),
@@ -194,28 +195,28 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     geom_jitter() +
     scale_fill_viridis(discrete=T, labels = c( #this is the plot providing the legend to the patchwork
-      Hog = "Hogsete",
-      Joa = "Joasete",
-      Lia = "Liahovden",
-      Vik = "Vikesland"
+      Hog = "700",
+      Joa = "920",
+      Lia = "1290",
+      Vik = "469"
     )) +
     scale_color_viridis(discrete=T, labels = c(
-      Hog = "Hogsete",
-      Joa = "Joasete",
-      Lia = "Liahovden",
-      Vik = "Vikesland"
+      Hog = "700",
+      Joa = "920",
+      Lia = "1290",
+      Vik = "469"
     )) +
     scale_y_continuous(position = "right") +
     scale_x_discrete(labels = c(
-      Hog = "Hogsete",
-      Joa = "Joasete",
-      Lia = "Liahovden",
-      Vik = "Vikesland"
+      Hog = "700m",
+      Joa = "920m",
+      Lia = "1290m",
+      Vik = "469m"
     )) +
     labs(
-      y="Cumulative fluxes",
-      fill = "Site",
-      color = "Site"
+      y="Cumulative fluxes (mmol/sqm)",
+      fill = "Elevation (m)",
+      color = "Elevation (m)"
     ) +
     facet_wrap(~name, scales = "free", ncol = 1) +
     theme_bw() +
@@ -224,23 +225,31 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
       axis.title.x = element_blank(),
       # axis.text.x=element_blank(),
       axis.ticks.x=element_blank(),
-      text=element_text(size=font_size)
+      text=element_text(size=font_size),
+      legend.position = "bottom"
     )
   
-  patchwork <- diurnal_fluxes + fluxes_cumul + diurnal_microclimate + density_microclimate +
+  patchwork <- diurnal_fluxes + fluxes_cumul + diurnal_microclimate + density_microclimate + guide_area() +
     plot_layout(guides = "collect",
+                design = "
+                112
+                334
+                555
+                ",
                 ncol = 2,
+                nrow = 3,
                 widths = c(2, 1),
-                heights = c(3, 5) #this ratio makes sure all the diurnals have the same heigt
+                heights = c(3, 5, 0.1) #this ratio makes sure all the diurnals have the same heigt
     ) +
-    plot_annotation(tag_levels = 'A')
+    plot_annotation(tag_levels = 'a')
   
   return(patchwork)
 }
 
 
 plots_making(data_long, fluxstarttimes, 11)
-ggsave("PFTC6datapaper_figure.png", width = 14, height = 12, units = "in")
+ggsave("PFTC6datapaper_figure.svg", width = 3508, height = 2480, units = "px", dpi = 300)
+ggsave("PFTC6datapaper_figure.jpg", width = 3508, height = 2480, units = "px", dpi = 300)
 
 
 
