@@ -62,7 +62,8 @@ metatomst <- metatomst %>%
       datetime_out >= course_end ~ course_end,
       datetime_out < course_end ~ datetime_out
     )
-  )
+  ) |>
+  rename(destSiteID = site)
 
 ## Read in files ----
 ### PFTC6 ----
@@ -124,7 +125,8 @@ tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
 microclimate <- tempPFTC6 %>%
   # bind_rows(tempThreeD) %>%
   # rename column names
-  rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
+  rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6,
+         RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
   mutate(datetime = ymd_hm(datetime)
   ) %>%
   select(!c(File, ID, X10)) %>%
@@ -149,7 +151,7 @@ microclimate.clean = microclimate %>%
   # whichever is longer
   filter(datetime > datetime_begin & datetime < datetime_end) %>%
   mutate(
-    cutting = case_when(
+    flag = case_when(
       # air colder than expected
       sensor == "air_temperature" & value < -40 ~ "cut_Tmin_air",
       # air warmer than expected
@@ -173,7 +175,7 @@ microclimate.clean = microclimate %>%
 # Graphs for visualizing cuts ----
 # ## Air temperature ----
 # microclimate.clean %>% filter(sensor == "air_temperature") %>%
-#   ggplot(aes(x = datetime, y = value, color = cutting)) +
+#   ggplot(aes(x = datetime, y = value, color = flag)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
 #     "keep" = "#1e90ff",
@@ -187,7 +189,7 @@ microclimate.clean = microclimate %>%
 #
 # ## Ground temperature ----
 # ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"),
-#        aes(x = datetime, y = value, color = cutting)) +
+#        aes(x = datetime, y = value, color = flag)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
 #     "keep" = "#1e90ff",
@@ -199,7 +201,7 @@ microclimate.clean = microclimate %>%
 #
 # ## Soil temperature ----
 # ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"),
-#        aes(x = datetime, y = value, color = cutting)) +
+#        aes(x = datetime, y = value, color = flag)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
 #     "keep" = "#1e90ff",
@@ -211,7 +213,7 @@ microclimate.clean = microclimate %>%
 #
 # ## Soil moisture ----
 # ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"),
-#        aes(x = datetime, y = value, color = cutting)) +
+#        aes(x = datetime, y = value, color = flag)) +
 #   geom_point(size = 0.04, aes(group = loggerID)) +
 #   scale_color_manual(values = c(
 #     "keep" = "#1e90ff",
@@ -225,7 +227,7 @@ microclimate.clean = microclimate %>%
 # Make clean CSV ----
 microclimate.export <- microclimate.clean %>%
   filter(
-    cutting == "keep"
+    flag == "keep"
   ) %>%
   select(datetime, loggerID, turfID, destSiteID, sensor, value) %>%
   distinct()
@@ -248,9 +250,8 @@ threeD_microclimate <- threeD_microclimate_all %>%
     & date_time <= course_end
   ) %>%
   mutate(
-    loggerID = as_factor(loggerID)
-    # site = str_replace_all(destSiteID, c("Joa", "Vik", "Lia"), c("Joasete", "Vikesland", "Liahovden"))
-    # site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
+    loggerID = as_factor(loggerID),
+    destSiteID = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
   ) %>%
   rename(
     datetime = date_time,
