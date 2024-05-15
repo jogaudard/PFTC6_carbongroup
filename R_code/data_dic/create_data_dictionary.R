@@ -10,8 +10,8 @@ source("code/data_dic/download_read_clean_data.R")
 source("code/functions/make_data_dictionary.R")
 
 # data description ------------------------------------------------------------
-description_cflux <- read_csv("code/data_dic/data_dic_cflux.csv")
-description_microclimate <- read_csv("code/data_dic/data_dic_microclimate.csv")
+description_cflux <- read_csv("R_code/data_dic/data_dic_cflux.csv")
+description_microclimate <- read_csv("R_code/data_dic/data_dic_microclimate.csv")
 
 # cflux ------------------------------------------------------------------
 cflux_dic <- make_data_dictionary(data = cflux,
