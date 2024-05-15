@@ -46,12 +46,7 @@ file.remove("raw_data/THREE-D_clean_microclimate_2019-2022.csv.zip") #let's free
 metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata_all.csv", col_types = "ffffffccccccccc") %>% #Note this file is American convention
   mutate(
     datetime_in = mdy_hm(datetime_in), #dates in correct format
-    datetime_out = mdy_hm(datetime_out),
-    # datetime_begin = mdy_hm(datetime_begin),
-    # datetime_end = mdy_hm(datetime_end),
-    destSiteID = str_sub(site, 1, 3) #we want three letters code for siteID and have to specify this is destination site because of the transplanting treatment
-    ) %>%
-  select(!site)
+    datetime_out = mdy_hm(datetime_out))
 
 # modifying metadata to have a dataset that covers as much as possible of the course (23.07.2022 to 07.08.2022), but not more
 course_start <- ymd_hms("2022-07-23T00:00:01")
@@ -124,9 +119,6 @@ tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
 # rm(tempVik)
 # rm(tempJoa)
 # rm(tempLia)
-
-
-
 
 # make microclimate data ----
 microclimate <- tempPFTC6 %>%
