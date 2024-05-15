@@ -1,6 +1,6 @@
 #Soil moisture function ----
 
-source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/Climate/soilmoisture_correction.R")
+source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/functions/soilmoisture_correction.R")
 
 # metadata
 
@@ -47,17 +47,17 @@ metatomst <- read_csv("raw_data/PFTC6_microclimate_metadata_all.csv", col_types 
   mutate(
     datetime_in = mdy_hm(datetime_in), #dates in correct format
     datetime_out = mdy_hm(datetime_out),
-    # datetime_begin = mdy_hm(datetime_begin), 
+    # datetime_begin = mdy_hm(datetime_begin),
     # datetime_end = mdy_hm(datetime_end),
     destSiteID = str_sub(site, 1, 3) #we want three letters code for siteID and have to specify this is destination site because of the transplanting treatment
-    ) %>% 
+    ) %>%
   select(!site)
 
 # modifying metadata to have a dataset that covers as much as possible of the course (23.07.2022 to 07.08.2022), but not more
 course_start <- ymd_hms("2022-07-23T00:00:01")
 course_end <- ymd_hms("2022-08-08T00:00:01")
 
-metatomst <- metatomst %>% 
+metatomst <- metatomst %>%
   mutate(
     datetime_begin = case_when(
       datetime_in <= course_start ~ course_start,
@@ -76,11 +76,11 @@ filesPFTC6 <- dir(path = "raw_data/microclimate", pattern = "^data.*\\.csv$", fu
 
 # Read in data
 tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
-  file %>% 
-    set_names() %>% 
+  file %>%
+    set_names() %>%
     map_df(~ read_csv2(file = file, col_names = FALSE, col_types = "dcdddddddl")) #important! read_csv2 reads in European format
 }, .id = "File")%>%
-  # get logger ID 
+  # get logger ID
   mutate(
     loggerID = str_sub(File, 28, 35), #adjust this for different file names
     loggerID = as.factor(loggerID))
@@ -88,39 +88,39 @@ tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
 ### Three-D ----
 #### Vik
 # files3DVik <- dir(path = "raw_data/microclimate/climate/2022_autumn_Vik", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
-# 
+#
 # tempVik <- map_df(set_names(files3DVik), function(file) {
-#   file %>% 
-#     set_names() %>% 
+#   file %>%
+#     set_names() %>%
 #     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
 # }, .id = "File")
-# 
+#
 # #### Joa
 # files3DJoa <- dir(path = "raw_data/microclimate/climate/2022_autumn_Joa", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
-# 
+#
 # tempJoa <- map_df(set_names(files3DJoa), function(file) {
-#   file %>% 
-#     set_names() %>% 
+#   file %>%
+#     set_names() %>%
 #     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
 # }, .id = "File")
-# 
+#
 # files3DLia <- dir(path = "raw_data/microclimate/climate/2022_autumn_Lia", pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
-# 
+#
 # tempLia <- map_df(set_names(files3DLia), function(file) {
-#   file %>% 
-#     set_names() %>% 
+#   file %>%
+#     set_names() %>%
 #     map_df(~ read_csv2(file = file, col_names = FALSE)) #important! read_csv2 reads in European format
 # }, .id = "File")
-# 
+#
 # ### Grouped object
 # tempThreeD = tempVik %>%
 #   bind_rows(tempJoa) %>%
 #   bind_rows(tempLia) %>%
-#   # get logger ID 
+#   # get logger ID
 #   mutate(
 #     loggerID = str_sub(File, 52, 59), #adjust this for different file names
 #     loggerID = as.factor(loggerID))
-# 
+#
 # rm(tempVik)
 # rm(tempJoa)
 # rm(tempLia)
@@ -129,19 +129,19 @@ tempPFTC6 <- map_df(set_names(filesPFTC6), function(file) {
 
 
 # make microclimate data ----
-microclimate <- tempPFTC6 %>% 
+microclimate <- tempPFTC6 %>%
   # bind_rows(tempThreeD) %>%
   # rename column names
   rename(ID = X1, datetime = X2, time_zone = X3, soil_temperature = X4, ground_temperature = X5, air_temperature = X6, RawSoilmoisture = X7, Shake = X8, ErrorFlag = X9) %>%
   mutate(datetime = ymd_hm(datetime)
-  ) %>% 
-  select(!c(File, ID, X10)) %>% 
+  ) %>%
+  select(!c(File, ID, X10)) %>%
   distinct() %>%
   #join metdata
   right_join(metatomst, by = "loggerID") %>%  #Right join to filter out irrelevant loggers
   # calculate soil moisture
   # This function is written by Aud. Link at top of script.
-  mutate( 
+  mutate(
     soil_moisture = soil.moist(
       rawsoilmoist = RawSoilmoisture,
       soil_temp = soil_temperature,
@@ -190,9 +190,9 @@ microclimate.clean = microclimate %>%
 #   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
 #   # scale_x_date(date_labels = "%H:%M:%S") +
 #   facet_wrap(vars(loggerID), scales = "free")
-# 
+#
 # ggsave("air_temperature.png", height = 40, width = 100, units = "cm", path = "graph_microclimate")
-# 
+#
 # ## Ground temperature ----
 # ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"),
 #        aes(x = datetime, y = value, color = cutting)) +
@@ -204,7 +204,7 @@ microclimate.clean = microclimate %>%
 #   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
 #   # scale_x_date(date_labels = "%H:%M:%S") +
 #   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
-# 
+#
 # ## Soil temperature ----
 # ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"),
 #        aes(x = datetime, y = value, color = cutting)) +
@@ -216,7 +216,7 @@ microclimate.clean = microclimate %>%
 #   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
 #   # scale_x_date(date_labels = "%H:%M:%S") +
 #   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
-# 
+#
 # ## Soil moisture ----
 # ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"),
 #        aes(x = datetime, y = value, color = cutting)) +
@@ -231,25 +231,25 @@ microclimate.clean = microclimate %>%
 
 
 # Make clean CSV ----
-microclimate.export <- microclimate.clean %>% 
+microclimate.export <- microclimate.clean %>%
   filter(
     cutting == "keep"
-  ) %>% 
-  select(datetime, loggerID, turfID, destSiteID, sensor, value) %>% 
+  ) %>%
+  select(datetime, loggerID, turfID, destSiteID, sensor, value) %>%
   distinct()
 # group_by(datetime, loggerID, turfID, site, sensor, value) %>%
 # mutate(
 #   n = n()
-# ) %>% 
+# ) %>%
 # filter(n == 1) %>%  # we keep only the row that are unique
-# select(!n) %>% 
+# select(!n) %>%
 # ungroup()
 
 # taking Three-D data -----------------------------------------------------
 
 threeD_microclimate_all <- read_csv("raw_data/microclimate/THREE-D_clean_microclimate_2019-2022.csv")
 
-threeD_microclimate <- threeD_microclimate_all %>% 
+threeD_microclimate <- threeD_microclimate_all %>%
   filter(
     # year(date_time) == 2022
     date_time >= course_start
@@ -259,36 +259,36 @@ threeD_microclimate <- threeD_microclimate_all %>%
     loggerID = as_factor(loggerID)
     # site = str_replace_all(destSiteID, c("Joa", "Vik", "Lia"), c("Joasete", "Vikesland", "Liahovden"))
     # site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
-  ) %>% 
+  ) %>%
   rename(
     datetime = date_time,
     # site = destSiteID,
     datetime_in = initiale_date_time,
     datetime_out = end_date_time,
     soil_moisture = soilmoisture
-  ) %>% 
-  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>% 
+  ) %>%
+  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>%
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
 
-microclimate.export <- microclimate.export %>% 
+microclimate.export <- microclimate.export %>%
   bind_rows(threeD_microclimate) %>%
   left_join(metaturf)
 
 
 # more graphs to see the trends per site ----------------------------------
 
-microclimate.export %>% 
+microclimate.export %>%
   filter(
     sensor != "soil_moisture"
-  ) %>% 
+  ) %>%
   ggplot(aes(datetime, value, color = destSiteID)) +
   geom_point(size = 0.2) +
   facet_grid(sensor~.)
 
-microclimate.export %>% 
+microclimate.export %>%
   filter(
     sensor == "soil_moisture"
-  ) %>% 
+  ) %>%
   ggplot(aes(datetime, value, color = destSiteID)) +
   geom_point(size = 0.2)
 
