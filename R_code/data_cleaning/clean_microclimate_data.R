@@ -3,7 +3,7 @@
 source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/functions/soilmoisture_correction.R")
 
 # metadata
-source("R_code/metaturf.R")
+source("R_code/data_cleaning/make_metadata.R")
 
 # Fetch the data -----
 library(dataDownloader)
