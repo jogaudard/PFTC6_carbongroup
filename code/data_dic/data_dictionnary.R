@@ -12,7 +12,7 @@ source("code/data_dic/download_read_clean_data.R")
 # https://github.com/audhalbritter/Three-D/blob/master/R/Rgathering/make_data_dic.R
 
 make_data_dictionary <- function(data, description_table){
-  
+
   # get range
   range <- data %>%
     as_tibble() %>%
@@ -25,7 +25,7 @@ make_data_dictionary <- function(data, description_table){
       across(where(is.POSIXct), ~paste(min(., na.rm = TRUE), max(., na.rm = TRUE), sep = " - "))
     ) %>%
     pivot_longer(cols = everything(), names_to = "Variable name", values_to = "Variable range or levels")
-  
+
   # get class and make it into a tibble
   class <- map_dfr(data %>% as_tibble, ~enframe(class(.x)[1], value = "Variable type"),
                    .id = "Variable name") %>%
@@ -37,19 +37,15 @@ make_data_dictionary <- function(data, description_table){
                                        `Variable type` %in% c("POSIXct") ~ "date_time")) %>%
     # join with range
     left_join(range, by = "Variable name")
-  
+
   # get class table with
   dictionary <- class %>%
      left_join(description_table, by = "Variable name") %>%
     select("Variable name", Description, "Variable type", "Variable range or levels", "Unit", "How measured")
-  
- 
+
+
     return(dictionary)
   }
-  
-
-
-
 
 # data description ------------------------------------------------------------
 description <- read_csv("code/data_dic/data_dic.csv")
@@ -65,8 +61,6 @@ description <- read_csv("code/data_dic/data_dic.csv")
 cflux_dic <- make_data_dictionary(data = cflux,
                                   description_table = description
 )
-
-
 
 # render readme --------------------------------------------------------
 # to avoid re running everything and slowing down the process, we render the readme file here
