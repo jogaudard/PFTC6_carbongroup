@@ -9,9 +9,17 @@ source("code/metaturf.R")
 #          file = "Three-D_metaturfID.csv",
 #          path = "clean_data",
 #          remote_path = "Site")
-# 
-# metadata <- read_csv("clean_data/Three-D_metaturfID.csv") %>% 
+#
+# metadata <- read_csv("clean_data/Three-D_metaturfID.csv") %>%
 #   select(warming, turfID)
+
+# All CFlux data ----
+get_file(node = "fcbw4",
+         file = "PFTC6_24h_cflux_allsites_2022.csv",
+         path = "clean_data",
+         remote_path = "v. c_flux_data")
+
+cflux <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
 
 
 # CFlux data -------------------------------------------------------------
@@ -45,5 +53,5 @@ get_file(node = "fcbw4",
 cflux_joasete <- read_csv("clean_data/PFTC6_24h-cflux_joasete_2022.csv", col_types = "ffdddTtd")
 
 #all fluxes together
-cflux <- bind_rows(cflux_vikesland, cflux_hogsete, cflux_liahovden, cflux_joasete) %>% 
+cflux <- bind_rows(cflux_vikesland, cflux_hogsete, cflux_liahovden, cflux_joasete) %>%
   right_join(metaturf)
