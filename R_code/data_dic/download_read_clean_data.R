@@ -15,4 +15,5 @@ get_file(node = "fcbw4",
          path = "clean_data",
          remote_path = "vii. microclimate_data")
 
-microclimate <- read_csv("clean_data/PFTC6_clean_microclimate_2022.csv")
+microclimate <- read_csv("clean_data/PFTC6_clean_microclimate_2022.csv") |>
+  mutate(loggerID = as.numeric(loggerID))
