@@ -17,13 +17,13 @@ library(lubridate)
 get_file(node = "fcbw4",
          file = "PFTC6_microclimate_2022.zip",
          path = "raw_data",
-         remote_path = "raw_data/microclimate_raw_data")
+         remote_path = "raw_data/vii. microclimate_raw_data")
 
 #Download microclimate metadata
 get_file(node = "fcbw4",
          file = "PFTC6_microclimate_metadata_all.csv",
          path = "raw_data",
-         remote_path = "raw_data/microclimate_raw_data")
+         remote_path = "raw_data/vii. microclimate_raw_data")
 
 
 #Unzip microclimate data
