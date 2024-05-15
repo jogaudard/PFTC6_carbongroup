@@ -10,7 +10,8 @@ my_packages <- c("dataDownloader",
                  "lubridate",
                  "broom",
                  "zoo",
-                 "hms"
+                 "hms",
+                 "stringr"
                  )
 
 lapply(my_packages, library, character.only = TRUE)
@@ -58,13 +59,20 @@ sapply(sources, source)
 #     site = "Hog"
 #   )
 
+# Update the site names in metaturf
+metaturf_clean <- metaturf |>
+  mutate_all(funs(str_replace(., "Lia", "Liahovden"))) |>
+  mutate_all(funs(str_replace(., "Joa", "Joasete"))) |>
+  mutate_all(funs(str_replace(., "Hog", "Hogsete"))) |>
+  mutate_all(funs(str_replace(., "Vik", "Vikesland")))
+
 cflux_all_clean <- bind_rows(
   cflux_vikesland_corrected,
   cflux_liahovden_corrected,
   cflux_joasete_corrected,
   cflux_hogsete_corrected
 ) %>%
-  left_join(metaturf)
+  left_join(metaturf_clean)
 
 # There were missing round due to issues on the field
 # # We are missing a round in Joa and Lia
