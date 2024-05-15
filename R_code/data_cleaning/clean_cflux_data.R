@@ -20,21 +20,18 @@ functions = dir(path = "R_code/functions", full.names = TRUE)
 
 sapply(functions, source)
 
-sources <- list("R_code/make_metadata.R",
-                "R_code/cleaning_cflux_site_vikesland.R",
-                "R_code/cleaning_cflux_site_liahovden.R",
-                "R_code/cleaning_cflux_site_joasete.R",
-                "R_code/cleaning_cflux_site_hogsete.R"
+sources <- list("R_code/data_cleaning/make_metadata.R",
+                "R_code/data_cleaning/cleaning_cflux_site_vikesland.R",
+                "R_code/data_cleaning/cleaning_cflux_site_liahovden.R",
+                "R_code/data_cleaning/cleaning_cflux_site_joasete.R",
+                "R_code/data_cleaning/cleaning_cflux_site_hogsete.R"
                 )
 
 sapply(sources, source)
 
 # Update the site names in metaturf ----
 metaturf_clean <- metaturf |>
-  mutate_all(funs(str_replace(., "Lia", "Liahovden"))) |>
-  mutate_all(funs(str_replace(., "Joa", "Joasete"))) |>
-  mutate_all(funs(str_replace(., "Hog", "Hogsete"))) |>
-  mutate_all(funs(str_replace(., "Vik", "Vikesland")))
+  rename(destSiteID = destination, origSiteID = origin)
 
 cflux_all_clean <- bind_rows(
   cflux_vikesland_corrected,
@@ -48,7 +45,7 @@ cflux_all_clean <- bind_rows(
 # we need to create those two datasets.
 missing_joa <- cflux_all_clean %>%
   filter(
-    destSiteID == "Joa"
+    destSiteID == "Joasete"
     # & type != "GPP"
   ) %>%
   select(destSiteID, turfID, origSiteID, warming) %>%
@@ -62,7 +59,7 @@ missing_joa <- cflux_all_clean %>%
 
 missing_lia <- cflux_all_clean %>%
   filter(
-    destSiteID == "Lia"
+    destSiteID == "Liahovden"
   ) %>%
   select(destSiteID, turfID, origSiteID, warming) %>%
   distinct() %>%
