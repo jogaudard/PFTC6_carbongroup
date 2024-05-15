@@ -10,7 +10,8 @@ source("code/data_dic/download_read_clean_data.R")
 source("code/functions/make_data_dictionary.R")
 
 # data description ------------------------------------------------------------
-description <- read_csv("code/data_dic/data_dic_cflux.csv")
+description_cflux <- read_csv("code/data_dic/data_dic_cflux.csv")
+description_microclimate <- read_csv("code/data_dic/data_dic_microclimate.csv")
 
 # metadata turf ------------------------------------------------------------------
 # metadata_dic <- make_data_dictionary(data = metadata,
@@ -21,8 +22,12 @@ description <- read_csv("code/data_dic/data_dic_cflux.csv")
 # cflux <- bind_rows(cflux_vikesland, cflux_hogsete, cflux_liahovden)
 
 cflux_dic <- make_data_dictionary(data = cflux,
-                                  description_table = description
+                                  description_table = description_cflux
 )
+
+# Microclimate ----
+microclimate_dic <- make_data_dictionary(data = microclimate,
+                                         description_table = description_microclimate)
 
 # render readme --------------------------------------------------------
 # to avoid re running everything and slowing down the process, we render the readme file here
