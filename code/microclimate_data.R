@@ -298,8 +298,9 @@ microclimate.export <- microclimate.clean %>%
 # select(!n) %>%
 # ungroup()
   bind_rows(threeD_microclimate) %>%
-  left_join(metaturf) |>
-  select(datetime, destSiteID, loggerID, turfID, warming, sensor, value_original, value, flag)
+  left_join(metaturf) %>%
+  dplyr::rename(climate_variable = sensor) %>%
+  select(datetime, destSiteID, loggerID, turfID, warming, climate_variable, value_original, value, flag)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
 
