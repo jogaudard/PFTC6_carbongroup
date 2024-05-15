@@ -170,7 +170,13 @@ microclimate.clean = microclimate %>%
       sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist",
       TRUE ~ "keep"
     )
-  )
+  ) |>
+  # Replace flagged values with NA
+  rename(value_original = value) |>
+  mutate(value = case_when(
+    flag != "keep" ~ NA,
+    TRUE ~ value_original
+  ))
 
 # Graphs for visualizing cuts ----
 # ## Air temperature ----
@@ -223,22 +229,6 @@ microclimate.clean = microclimate %>%
 #   # scale_x_date(date_labels = "%H:%M:%S") +
 #   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
 
-
-# Make clean CSV ----
-microclimate.export <- microclimate.clean %>%
-  filter(
-    flag == "keep"
-  ) %>%
-  select(datetime, loggerID, turfID, destSiteID, sensor, value) %>%
-  distinct()
-# group_by(datetime, loggerID, turfID, site, sensor, value) %>%
-# mutate(
-#   n = n()
-# ) %>%
-# filter(n == 1) %>%  # we keep only the row that are unique
-# select(!n) %>%
-# ungroup()
-
 # taking Three-D data -----------------------------------------------------
 
 threeD_microclimate_all <- read_csv("raw_data/microclimate/THREE-D_clean_microclimate_2019-2022.csv")
@@ -260,13 +250,58 @@ threeD_microclimate <- threeD_microclimate_all %>%
     datetime_out = end_date_time,
     soil_moisture = soilmoisture
   ) %>%
-  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>%
-  pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value")
+  select(datetime, loggerID, turfID, destSiteID,
+         soil_temperature, ground_temperature, air_temperature, soil_moisture,
+         datetime_in, datetime_out) %>%
+  pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value") |>
+  # Flag values following the same practice as our data
+  mutate(
+    flag = case_when(
+      # air colder than expected
+      sensor == "air_temperature" & value < -40 ~ "cut_Tmin_air",
+      # air warmer than expected
+      sensor == "air_temperature" & value > 30 ~ "cut_Tmax_air",
+      # ground colder than expected
+      sensor == "ground_temperature" & value < -40 ~ "cut_Tmin_ground",
+      # ground warmer than expected
+      sensor == "ground_temperature" & value > 35 ~ "cut_Tmax_ground",
+      # soil colder than expected
+      sensor == "soil_temperature" & value < 5 ~ "cut_Tmin_soil",
+      # soil warmer than expected
+      sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
+      # soil drier than expected
+      sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
+      # soil wetter than expected
+      sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist",
+      TRUE ~ "keep"
+    )
+  ) |>
+  # Replace flagged values with NA
+  rename(value_original = value) |>
+  mutate(value = case_when(
+    flag != "keep" ~ NA,
+    TRUE ~ value_original
+  ))
 
-microclimate.export <- microclimate.export %>%
+# Make clean CSV ----
+microclimate.export <- microclimate.clean %>%
+  filter(
+    flag == "keep"
+  ) %>%
+  # select(datetime, loggerID, turfID, destSiteID, sensor, value) %>%
+  distinct() |>
+# group_by(datetime, loggerID, turfID, site, sensor, value) %>%
+# mutate(
+#   n = n()
+# ) %>%
+# filter(n == 1) %>%  # we keep only the row that are unique
+# select(!n) %>%
+# ungroup()
   bind_rows(threeD_microclimate) %>%
-  left_join(metaturf)
+  left_join(metaturf) |>
+  select(datetime, destSiteID, loggerID, turfID, warming, sensor, value_original, value, flag)
 
+write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
 
 # more graphs to see the trends per site ----------------------------------
 
@@ -284,5 +319,3 @@ microclimate.export %>%
   ) %>%
   ggplot(aes(datetime, value, color = destSiteID)) +
   geom_point(size = 0.2)
-
-write_csv(microclimate.export, "clean_data/PFTC6_microclimate_allsites_2022.csv")
