@@ -81,7 +81,7 @@ missing_rounds <- bind_rows(missing_joa, missing_lia) %>%
 cflux_all_clean <- cflux_all_clean %>%
   bind_rows(missing_rounds) |>
   # Reorganise data
-  arrange(datetime, time, origSiteID, destSiteID, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
+  relocate(datetime, time, origSiteID, destSiteID, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
           temp_soil, temp_airavg, flag)
 
 
