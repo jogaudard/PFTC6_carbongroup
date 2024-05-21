@@ -131,63 +131,12 @@ microclimate.clean = microclimate %>%
       TRUE ~ "keep"
     )) |>
   # Replace flagged values with NA
-  rename(value_original = value) |>
+  rename(value_original = value, climate_variable = sensor) |>
   mutate(value = case_when(
     flag != "keep" ~ NA,
     TRUE ~ value_original
   )) |>
-  select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
-
-# Graphs for visualizing cuts ----
-# ## Air temperature ----
-# microclimate.clean %>% filter(sensor == "air_temperature") %>%
-#   ggplot(aes(x = datetime, y = value, color = flag)) +
-#   geom_point(size = 0.04, aes(group = loggerID)) +
-#   scale_color_manual(values = c(
-#     "keep" = "#1e90ff",
-#     "cut" = "#ff0800"
-#   )) +
-#   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
-#   # scale_x_date(date_labels = "%H:%M:%S") +
-#   facet_wrap(vars(loggerID), scales = "free")
-#
-# ggsave("air_temperature.png", height = 40, width = 100, units = "cm", path = "graph_microclimate")
-#
-# ## Ground temperature ----
-# ggplot(microclimate.clean %>% filter(sensor == "ground_temperature"),
-#        aes(x = datetime, y = value, color = flag)) +
-#   geom_point(size = 0.04, aes(group = loggerID)) +
-#   scale_color_manual(values = c(
-#     "keep" = "#1e90ff",
-#     "cut" = "#ff0800"
-#   )) +
-#   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
-#   # scale_x_date(date_labels = "%H:%M:%S") +
-#   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
-#
-# ## Soil temperature ----
-# ggplot(microclimate.clean %>% filter(sensor == "soil_temperature"),
-#        aes(x = datetime, y = value, color = flag)) +
-#   geom_point(size = 0.04, aes(group = loggerID)) +
-#   scale_color_manual(values = c(
-#     "keep" = "#1e90ff",
-#     "cut" = "#ff0800"
-#   )) +
-#   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
-#   # scale_x_date(date_labels = "%H:%M:%S") +
-#   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
-#
-# ## Soil moisture ----
-# ggplot(microclimate.clean %>% filter(sensor == "soil_moisture"),
-#        aes(x = datetime, y = value, color = flag)) +
-#   geom_point(size = 0.04, aes(group = loggerID)) +
-#   scale_color_manual(values = c(
-#     "keep" = "#1e90ff",
-#     "cut" = "#ff0800"
-#   )) +
-#   scale_x_datetime(date_breaks = "5 hour", date_labels = "%H:%M") +
-#   # scale_x_date(date_labels = "%H:%M:%S") +
-#   facet_wrap(vars(loggerID), ncol = 3, scales = "free")
+  select(datetime, loggerID, turfID, destSiteID, climate_variable, value_original, value, flag, datetime_in, datetime_out)
 
 # Adding Three-D data -----------------------------------------------------
 threeD_microclimate_all <- read_csv("raw_data/microclimate/THREE-D_clean_microclimate_2019-2022.csv")
@@ -231,16 +180,18 @@ threeD_microclimate <- threeD_microclimate_all %>%
       TRUE ~ "keep"
     )) |>
   # Replace flagged values with NA
-  rename(value_original = value) |>
+  rename(value_original = value, climate_variable = sensor) |>
   mutate(value = case_when(
     flag != "keep" ~ NA,
     TRUE ~ value_original
   )) |>
-  select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
+  select(datetime, loggerID, turfID, destSiteID, datetime_in, datetime_out, climate_variable, value_original, value, flag)
 
 microclimate.export <- microclimate.clean %>%
   bind_rows(threeD_microclimate) %>%
-  left_join(metaturf)
+  left_join(metaturf) |>
+  relocate(datetime, loggerID, turfID, origSiteID, destSiteID, turfID, loggerID, warming, datetime_in, datetime_out,
+           climate_variable, value_original, value, flag)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
 
