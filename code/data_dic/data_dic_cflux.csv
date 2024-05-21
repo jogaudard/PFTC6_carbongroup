@@ -1,0 +1,16 @@
+﻿Variable name,Description,Unit,How measured
+datetime,Date and time of the carbon flux measurment,yyyy-mm-dd hh:mm:ss,recorded
+time,Time of the carbon flux measurment (independent of date),hh:mm:ss,recorded
+origSiteID,Unique site ID of origin site,NA,defined
+destSiteID,Unique site ID of destination site (the site they were measured at),NA,defined
+turfID,"Unique ID of vegetation turf as origSiteID, treatments and destSiteID",NA,defined
+warming,Warming treatment with W for warming or A for ambient,NA,defined
+type,"Types of the CO2 flux data: GPP = Gross Primary Productivity, NEE = Net ecosystem exchange, and ER = ecosystem respiration",NA,defined
+fluxID,Unique identifier for each flux measurement,NA,defined
+flux,Value for CO2 flux with recommendations from flag applied. Used to calculate GPP.,mmol m-2hr-1,calculated
+flux_noflag,Flux as calculated with the slopes. No value replaced with flags. No GPP calculated.,mmol m-2 hr-1,calculated
+flux_corrected,Flux corrected for CO2 accumulation in canopy at night. We recommend using that one.  , mmol /m^-2 /hr-1,calculated
+PARavg,Mean Photosynthetic Active Radiation (PAR),µmol s-1sqm-1,recorded
+temp_soil,Mean soil temperature measured during flux measurements.,°C,recorded
+temp_airavg,Mean air temperature measured during the flux measurments. Not recommended for microclimate analyses. ,°C,recorded
+flag,Flagging missing or unreliable data. This information can be used to sort unwanted observations.,,defined

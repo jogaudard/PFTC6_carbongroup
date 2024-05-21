@@ -20,23 +20,37 @@ Li-cor LI-840A.
 
 ## CO<sub>2</sub> fluxes
 
-<!-- ### Vikesland -->
-
-| Variable name  | Description                                                                                  | Variable type | Variable range or levels                  | Unit                | How measured                                                                 |
-|:---------------|:---------------------------------------------------------------------------------------------|:--------------|:------------------------------------------|:--------------------|:-----------------------------------------------------------------------------|
-| turfID         | The ID of the plot of the carbon flux measurement                                            | categorical   | 1 WN1M 84 - TTC 146                       | NA                  | defined                                                                      |
-| type           | Types of the data that were collected with (ER) and without tarps (NEE).                     | categorical   | ER, NEE, GPP                              | NA                  | defined                                                                      |
-| flux           | The value of the measured carbon flux                                                        | numeric       | -96.004 - 92.471                          | mmol/sqm/h          | calculated                                                                   |
-| temp_soil      | The mean of the soil temperature in the outer plot.                                          | numeric       | 0.834 - 32.431                            | celsius             | Automatically measured by the thermal sensor and recorded to the data logger |
-| PARavg         | The mean of the Photosynthetic Active Radiation (PAR) value                                  | numeric       | 0 - 1830.82                               | micromol/s/sqm      | Automatically measured by the PAR sensor and recorded to the data logger     |
-| datetime       | Date and time of the measured carbon flux                                                    | date_time     | 2022-07-23 21:45:15 - 2022-07-31 08:12:45 | yyyy-mm-dd hh:mm:ss | observed                                                                     |
-| time           | Time at which the measurement was started                                                    | NA            | NA                                        | hh:mm:ss            | observed                                                                     |
-| flux_corrected | Flux corrected for accumulation of CO<sub>2</sub> in the canopy during the first measurement | numeric       | -116.087 - 92.471                         | mmol/sqm/h          | calculated                                                                   |
-| warming        | Warming treatment                                                                            | categorical   | ambient - transplant                      | NA                  | defined                                                                      |
-| origin         | Site from which the turfs were transplanted                                                  | categorical   | hogsete - vikesland                       | NA                  | defined                                                                      |
-| destination    | Site at which the turfs were transplanted (current location)                                 | categorical   | hogsete - vikesland                       | NA                  | defined                                                                      |
+| Variable name  | Description                                                                                                                | Variable type | Variable range or levels                  | Unit                | How measured |
+|:---------------|:---------------------------------------------------------------------------------------------------------------------------|:--------------|:------------------------------------------|:--------------------|:-------------|
+| turfID         | Unique ID of vegetation turf as origSiteID, treatments and destSiteID                                                      | categorical   | 105 WN3C 173 - TTC 146                    | NA                  | defined      |
+| type           | Types of the CO2 flux data: GPP = Gross Primary Productivity, NEE = Net ecosystem exchange, and ER = ecosystem respiration | categorical   | ER - NEE                                  | NA                  | defined      |
+| flux           | Value for CO2 flux with recommendations from flag applied. Used to calculate GPP.                                          | numeric       | -97.022 - 130.504                         | mmol m-2hr-1        | calculated   |
+| temp_soil      | Mean soil temperature measured during flux measurements.                                                                   | numeric       | 0.84 - 32.13                              | °C                  | recorded     |
+| temp_airavg    | Mean air temperature measured during the flux measurments. Not recommended for microclimate analyses.                      | numeric       | 0.807 - 32.454                            | °C                  | recorded     |
+| PARavg         | Mean Photosynthetic Active Radiation (PAR)                                                                                 | numeric       | -2.843 - 1840.27                          | µmol s-1sqm-1       | recorded     |
+| datetime       | Date and time of the carbon flux measurment                                                                                | date_time     | 2022-07-23 21:45:15 - 2022-07-31 08:12:45 | yyyy-mm-dd hh:mm:ss | recorded     |
+| fluxID         | Unique identifier for each flux measurement                                                                                | numeric       | 1 - 288                                   | NA                  | defined      |
+| flag           | Flagging missing or unreliable data. This information can be used to sort unwanted observations.                           | categorical   | discard - zeroNEE                         | NA                  | defined      |
+| flux_noflag    | Flux as calculated with the slopes. No value replaced with flags. No GPP calculated.                                       | numeric       | -4931.3 - 28252.31                        | mmol m-2 hr-1       | calculated   |
+| time           | Time of the carbon flux measurment (independent of date)                                                                   | NA            | NA                                        | hh:mm:ss            | recorded     |
+| flux_corrected | Flux corrected for CO2 accumulation in canopy at night. We recommend using that one.                                       | numeric       | -141.365 - 130.504                        | mmol /m^-2 /hr-1    | calculated   |
+| warming        | Warming treatment with W for warming or A for ambient                                                                      | categorical   | A - W                                     | NA                  | defined      |
+| origSiteID     | Unique site ID of origin site                                                                                              | categorical   | Hog - Vik                                 | NA                  | defined      |
+| destSiteID     | Unique site ID of destination site (the site they were measured at)                                                        | categorical   | Hog - Vik                                 | NA                  | defined      |
 
 ## Microclimate
+
+| Variable name    | Description                                                                                              | Variable type | Variable range or levels                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Unit                            | How measured |
+|:-----------------|:---------------------------------------------------------------------------------------------------------|:--------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------|:-------------|
+| datetime         | Date and time of measurement                                                                             | date_time     | 2022-07-23 00:15:00 - 2022-08-08                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yyyy-mm-dd hh:mm:ss             | recorded     |
+| destSiteID       | Unique site ID of destination site                                                                       | categorical   | Hogsete - Vikesland                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | NA                              | defined      |
+| loggerID         | Unique climate logger ID                                                                                 | categorical   | 95221106, 95221107, 95221108, 95221109, 95221110, 95221146, 95221147, 95221148, 95221149, 95221150, 94195255, 94195259, 94195218, 94195214, 94200496, 94195247, 94195237, 94200491, 94194604, 94195201, 94195202, 94195203, 94195204, 94195205, 94195206, 94195207, 94195208, 94195209, 94195210, 94195211, 94195212, 94195213, 94195215, 94195216, 94195217, 94195219, 94195220, 94195221, 94195222, 94195223, 94195224, 94195225, 94195226, 94195228, 94195229, 94195231, 94195232, 94195233, 94195234, 94195235, 94195238, 94195239, 94195240, 94195242, 94195243, 94195244, 94195245, 94195246, 94195248, 94195249, 94195250, 94195253, 94195254, 94195257, 94195258, 94195260, 94195262, 94195263, 94195264, 94195265, 94195266, 94195267, 94195268, 94195269, 94195270, 94195271, 94195272, 94200493, 94200494, 94200495, 94200497, 94200498, 94200499, 94201707 | NA                              | defined      |
+| turfID           | Unique ID of vegetation turf as originplotID, treatments and destinationplotID                           | categorical   | 100 AN5M 100 - TTC 146                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | NA                              | defined      |
+| warming          | Warming treatment with W for warming or A for ambient                                                    | categorical   | A - W                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | NA                              | defined      |
+| climate_variable | Microclimate variable including air_temperature, ground_temperature, soil_temperature, and soil_moisture | categorical   | air_temperature - soil_temperature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | NA                              | defined      |
+| value_original   | Temperature or moisture reading including values later flagged as suspect                                | numeric       | -1 - 35.625                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | °C, (m3 water × m−3 soil) × 100 | recorded     |
+| value            | Temperature or moisture reading with suspect values replaced with NA                                     | numeric       | -1 - 34.625                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | °C, (m3 water × m−3 soil) × 100 | recorded     |
+| flag             | Warning for values that exceed expected parameters                                                       | categorical   | cut_max_moist - keep                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | NA                              | defined      |
 
 <!-- # Figures -->
 <!-- ```{r, echo=FALSE, fig.align='left', fig.cap=""} -->
@@ -50,64 +64,62 @@ Note: those data are representative of a single point in the season
 entire season or annual carbon balance.
 <!-- ## Comparison with daily point measurements -->
 
--   How is the mean and/or median comparing to the calculated 24h
-    fluxes?
--   How much is the peak measurement (usual method) deviating from the
-    calculated 24h fluxes?
--   Temperature response curves, species composition of turfs (group 3)
--   SLA / LMA to explain GPP with transplant treatment (or any other
-    proxy of biomass)
--   Impacts of traits on flux through 24h
--   Greater diversity leading to greater productivity? Does this hold
-    for transplants?
--   Legacy effect versus adaptation on fluxes: is the transplant
-    behaving (fluxes wise) more similarly to the local ambient or the
-    origin ambient?
--   Fluxes related to conditions and altitude gradient:
-    -   gradient of temperature
-    -   gradient of PAR?? (group 3, we need answers!)
-    -   how are those gradients affecting c fluxes? (using ambient
-        turfs)
-    -   or is that only an effect of the species composition?
--   Soil respiration: is photosynthesis or soil respiration the main
-    driver in variation of NEE accross the altitude gradient?
--   How much are the traits explaining the variability in fluxes? Can
-    the altitude gradient and the transplanting explain more of that
-    variation?
+- How is the mean and/or median comparing to the calculated 24h fluxes?
+- How much is the peak measurement (usual method) deviating from the
+  calculated 24h fluxes?
+- Temperature response curves, species composition of turfs (group 3)
+- SLA / LMA to explain GPP with transplant treatment (or any other proxy
+  of biomass)
+- Impacts of traits on flux through 24h
+- Greater diversity leading to greater productivity? Does this hold for
+  transplants?
+- Legacy effect versus adaptation on fluxes: is the transplant behaving
+  (fluxes wise) more similarly to the local ambient or the origin
+  ambient?
+- Fluxes related to conditions and altitude gradient:
+  - gradient of temperature
+  - gradient of PAR?? (group 3, we need answers!)
+  - how are those gradients affecting c fluxes? (using ambient turfs)
+  - or is that only an effect of the species composition?
+- Soil respiration: is photosynthesis or soil respiration the main
+  driver in variation of NEE accross the altitude gradient?
+- How much are the traits explaining the variability in fluxes? Can the
+  altitude gradient and the transplanting explain more of that
+  variation?
 
-# Field measurements
+# Field measurement instructions
 
 ## Start of 24h campaign
 
--   Connect the chamber to the licor and the pump.
--   Place PAR sensor and air temperature in the chamber and connect them
-    to the logger.
-    <!-- - Connect the soil temperature sensor to the logger. -->
--   Connect the battery and see that the licor is working normally
-    (there should be a green light).
--   Connect and arm the logger.
--   Check that the watch you will use to write down starting time is
-    synchronized with the logger.
--   Turn on the fan and the pump.
--   Check the value from the licor (should be around 400ppm).
+- Connect the chamber to the licor and the pump.
+- Place PAR sensor and air temperature in the chamber and connect them
+  to the logger.
+  <!-- - Connect the soil temperature sensor to the logger. -->
+- Connect the battery and see that the licor is working normally (there
+  should be a green light).
+- Connect and arm the logger.
+- Check that the watch you will use to write down starting time is
+  synchronized with the logger.
+- Turn on the fan and the pump.
+- Check the value from the licor (should be around 400ppm).
 
 ## NEE measurement
 
--   Check that the fan and pump are working and that all the tubes are
-    connected.
--   Check that the logger is armed.
--   Air the chamber.
-    <!-- - Put the soil temperature probe in the ground on the edge of the inner plot. -->
--   Put the chamber on the inner plot and apply the chain on the skirt
-    of the chamber for airtightness.
--   Write down the exact time at which the measurement started (with a
-    10 seconds resolution).
--   Leave it undisturbed for 3 minutes. Be careful to not move around
-    (might push gases out of the ground) and to not shade the chamber.
--   Write down when the measurement ended.
--   Remove the chain and the chamber, and air the chamber.
--   To save battery, you can turn off the fan and the pump in between
-    measurements (but do not turn off the licor!)
+- Check that the fan and pump are working and that all the tubes are
+  connected.
+- Check that the logger is armed.
+- Air the chamber.
+  <!-- - Put the soil temperature probe in the ground on the edge of the inner plot. -->
+- Put the chamber on the inner plot and apply the chain on the skirt of
+  the chamber for airtightness.
+- Write down the exact time at which the measurement started (with a 10
+  seconds resolution).
+- Leave it undisturbed for 3 minutes. Be careful to not move around
+  (might push gases out of the ground) and to not shade the chamber.
+- Write down when the measurement ended.
+- Remove the chain and the chamber, and air the chamber.
+- To save battery, you can turn off the fan and the pump in between
+  measurements (but do not turn off the licor!)
 
 ## ER measurment
 
@@ -123,11 +135,11 @@ using TMS microclimate loggers.
 
 ## At the end of the 24h campaign
 
--   Let the logger and licor run 1 minute after the last measurement
--   Turn off the fan and pump
--   Disarm the logger.
--   Disconnect everything for transport.
--   Take a picture of the field data sheet.
+- Let the logger and licor run 1 minute after the last measurement
+- Turn off the fan and pump
+- Disarm the logger.
+- Disconnect everything for transport.
+- Take a picture of the field data sheet.
 
 ## Changing batteries of the licor (scooter battery)
 
