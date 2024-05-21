@@ -60,11 +60,11 @@ sapply(sources, source)
 #   )
 
 # Update the site names in metaturf
-metaturf_clean <- metaturf |>
-  mutate_all(funs(str_replace(., "Lia", "Liahovden"))) |>
-  mutate_all(funs(str_replace(., "Joa", "Joasete"))) |>
-  mutate_all(funs(str_replace(., "Hog", "Hogsete"))) |>
-  mutate_all(funs(str_replace(., "Vik", "Vikesland")))
+# metaturf_clean <- metaturf |>
+#   mutate_all(funs(str_replace(., "Lia", "Liahovden"))) |>
+#   mutate_all(funs(str_replace(., "Joa", "Joasete"))) |>
+#   mutate_all(funs(str_replace(., "Hog", "Hogsete"))) |>
+#   mutate_all(funs(str_replace(., "Vik", "Vikesland")))
 
 cflux_all_clean <- bind_rows(
   cflux_vikesland_corrected,
@@ -72,7 +72,8 @@ cflux_all_clean <- bind_rows(
   cflux_joasete_corrected,
   cflux_hogsete_corrected
 ) %>%
-  left_join(metaturf_clean)
+left_join(metaturf)
+  # left_join(metaturf_clean)
 
 # There were missing round due to issues on the field
 # # We are missing a round in Joa and Lia
@@ -99,10 +100,10 @@ cflux_all_clean <- bind_rows(
 # we need to create those two datasets.
 missing_joa <- cflux_all_clean %>%
   filter(
-    destSiteID == "Joa"
+    destination == "Joasete"
     # & type != "GPP"
   ) %>%
-  select(destSiteID, turfID, origSiteID, warming) %>%
+  select(destination, turfID, origin, warming) %>%
   distinct() %>%
   mutate(
     # destSiteID = factor(destSiteID, level = c("81 AN1C 81", "3 WN1C 85", "")) # no need, turfID already in right order
@@ -113,9 +114,9 @@ missing_joa <- cflux_all_clean %>%
 
 missing_lia <- cflux_all_clean %>%
   filter(
-    destSiteID == "Lia"
+    destination == "Liahovden"
   ) %>%
-  select(destSiteID, turfID, origSiteID, warming) %>%
+  select(destination, turfID, origin, warming) %>%
   distinct() %>%
   mutate(
     NEE = seq(ymd_hms("2022-07-28 00:30:00"), ymd_hms("2022-07-28 00:59:00"), by = 600), #fluxes were measured about every 10 minutes
@@ -135,7 +136,7 @@ missing_rounds <- bind_rows(missing_joa, missing_lia) %>%
 cflux_all_clean <- cflux_all_clean %>%
   bind_rows(missing_rounds) |>
   # Reorganise data
-  arrange(datetime, time, origSiteID, destSiteID, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
+  arrange(datetime, time, origin, destination, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
           temp_soil, temp_airavg, flag)
 
 
