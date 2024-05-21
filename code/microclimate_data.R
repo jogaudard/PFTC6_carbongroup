@@ -165,19 +165,18 @@ microclimate.clean = microclimate %>%
       # soil warmer than expected
       sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
       # soil drier than expected
-      sensor == "soil_moisture" & value < 0 ~ "cut_min_moist"
+      sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
       # # soil wetter than expected # no such thing in wester Norway
       # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
-      # TRUE ~ "keep"
-    ),
-    value = case_when(
-      !is.na(flag) ~ NA_real_,
-      is.na(flag) ~ value
-    )
-
-  ) %>% 
-  select(datetime, loggerID, turfID, destSiteID, sensor, value, flag, datetime_in, datetime_out) %>% 
-    distinct()
+      TRUE ~ "keep"
+    )) |>
+  # Replace flagged values with NA
+  rename(value_original = value) |>
+  mutate(value = case_when(
+    flag != "keep" ~ NA,
+    TRUE ~ value_original
+  )) |>
+  select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
 
 
 # Graphs for visualizing cuts ----
@@ -233,18 +232,18 @@ microclimate.clean = microclimate %>%
 
 
 # Make clean CSV ----
-# microclimate.export <- microclimate.clean %>% 
+# microclimate.export <- microclimate.clean %>%
 #   filter(
 #     cutting == "keep"
-#   ) %>% 
-#   select(datetime, loggerID, turfID, destSiteID, sensor, value) %>% 
+#   ) %>%
+#   select(datetime, loggerID, turfID, destSiteID, sensor, value) %>%
 #   distinct()
 # group_by(datetime, loggerID, turfID, site, sensor, value) %>%
 # mutate(
 #   n = n()
-# ) %>% 
+# ) %>%
 # filter(n == 1) %>%  # we keep only the row that are unique
-# select(!n) %>% 
+# select(!n) %>%
 # ungroup()
 
 # taking Three-D data -----------------------------------------------------
@@ -267,10 +266,8 @@ threeD_microclimate <- threeD_microclimate_all %>%
     datetime_in = initiale_date_time,
     datetime_out = end_date_time,
     soil_moisture = soilmoisture
-
-
-  ) %>% 
-  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>% 
+  ) %>%
+  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>%
   pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value") %>%
   mutate(
     flag = case_when( # even tho the Three-D data were cleaned by the Three-D team, we apply the same filter that was applied to our data, out of consistency
@@ -290,30 +287,28 @@ threeD_microclimate <- threeD_microclimate_all %>%
         sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
         # soil wetter than expected #no such thing in Western Norway
         # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
-        # TRUE ~ "keep"
-      ),
-    value = case_when(
-        !is.na(flag) ~ NA_real_,
-        is.na(flag) ~ value
-      )
+        TRUE ~ "keep"
+      )) |>
+    # Replace flagged values with NA
+    rename(value_original = value) |>
+      mutate(value = case_when(
+        flag != "keep" ~ NA,
+        TRUE ~ value_original
+      )) |>
     # site = str_replace_all(destSiteID, c("Joa", "Vik", "Lia"), c("Joasete", "Vikesland", "Liahovden"))
     # site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
-    ) %>% 
-      select(datetime, loggerID, turfID, destSiteID, sensor, value, flag, datetime_in, datetime_out) %>% 
-      distinct()
+      select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
 
-# to write number of flags in data paper
-threeD_microclimate %>% select(flag, value) %>% count(flag)
-
-microclimate.export <- microclimate.clean %>% 
+microclimate.export <- microclimate.clean %>%
   bind_rows(threeD_microclimate) %>%
-  left_join(metaturf) #%>% 
+  left_join(metaturf) #%>%
 # drop_na(value) %>%  # in case we want to produce a dataset without NAs
 # select(!flag)
 
-
-
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
+
+# to write number of flags in data paper
+microclimate.export %>% select(flag, value) %>% count(flag)
 
 # more graphs to see the trends per site ----------------------------------
 

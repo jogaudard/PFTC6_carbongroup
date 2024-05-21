@@ -73,7 +73,6 @@ cflux_all_clean <- bind_rows(
   cflux_hogsete_corrected
 ) %>%
 left_join(metaturf)
-  # left_join(metaturf_clean)
 
 # There were missing round due to issues on the field
 # # We are missing a round in Joa and Lia
@@ -136,13 +135,11 @@ missing_rounds <- bind_rows(missing_joa, missing_lia) %>%
 cflux_all_clean <- cflux_all_clean %>%
   bind_rows(missing_rounds) |>
   # Reorganise data
-  arrange(datetime, time, origin, destination, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
+  relocate(datetime, time, origin, destination, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
           temp_soil, temp_airavg, flag)
 
 
 write_csv(cflux_all_clean, "clean_data/PFTC6_24h_cflux_allsites_2022.csv")
-
-
 
 # to write number of flags in data paper
 cflux_all_clean %>% select(flag, flux_corrected) %>% count(flag)
