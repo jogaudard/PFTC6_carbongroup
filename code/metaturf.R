@@ -8,16 +8,32 @@ get_file(node = "pk4bg",
 
 meta_seedclim <- tibble(
   turfID = c("TTC 101", "TTC 110", "TTC 115", "TTC 146", "TTC 140", "TTC 141"),
-  origSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
-  destSiteID = c("Hog", "Hog", "Hog", "Vik", "Vik", "Vik"),
+  origin = c("Hogsete", "Hogsete", "Hogsete", "Vikesland", "Vikesland", "Vikesland"),
+  destination = c("Hogsete", "Hogsete", "Hogsete", "Vikesland", "Vikesland", "Vikesland"),
   warming = "A"
 )
 
-# Harmonized with PFTC6 data paper
-metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>% 
-  select(warming, origSiteID, turfID, destSiteID) %>% 
+metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>%
+  select(warming, origSiteID, turfID, destSiteID) %>%
+  rename(
+    origin = origSiteID,
+    destination = destSiteID
+  ) %>%
+  mutate(
+    origin = str_replace_all(
+      origin,
+      c("Lia" = "Liahovden" , "Joa" = "Hoasete", "Vik" = "Vikesland")
+    ),
+    destination = str_replace_all(
+      destination,
+      c("Lia" = "Liahovden" , "Joa" = "Joasete", "Vik" = "Vikesland")
+    ),
+    warming = str_replace_all(
+      warming,
+      c("ambient" = "A", "warming" = "W")
+    )
+  ) %>%
   bind_rows(meta_seedclim)
-
 
 # Archived code ----
 # meta_seedclim <- tibble(
@@ -26,13 +42,13 @@ metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>%
 #   destination = c("hogsete", "hogsete", "hogsete", "vikesland", "vikesland", "vikesland"),
 #   warming = "ambient"
 # )
-# 
-# metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>% 
-#   select(warming, origSiteID, turfID, destSiteID) %>% 
+#
+# metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>%
+#   select(warming, origSiteID, turfID, destSiteID) %>%
 #   rename(
 #     origin = origSiteID,
 #     destination = destSiteID
-#   ) %>% 
+#   ) %>%
 #   mutate(
 #     origin = str_replace_all(
 #       origin,
@@ -46,7 +62,7 @@ metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>%
 #       warming,
 #       c("W" = "transplant", "A" = "ambient")
 #     )
-#   ) %>% 
+#   ) %>%
 #   bind_rows(meta_seedclim)
 
 
