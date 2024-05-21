@@ -1,16 +1,13 @@
 ﻿Variable name,Description,Unit,How measured
 datetime,Date and time of measurement,yyyy-mm-dd hh:mm:ss,recorded
+origSiteID,Unique site ID of origin site,,defined
 destSiteID,Unique site ID of destination site,,defined
 turfID,"Unique ID of vegetation turf as originplotID, treatments and destinationplotID",,defined
 loggerID,Unique climate logger ID,,defined
 warming,Warming treatment with W for warming or A for ambient,,defined
+datetime_in,Date and time the logger was installed or date and time the logger data should be trimmed to,,defined
+datetime_out,Date and time the logger was removed or date and time the logger data should be trimmed to,,defined
 climate_variable,"Microclimate variable including air_temperature, ground_temperature,  soil_temperature, and soil_moisture",,defined
 value_original,Temperature or moisture reading including values later flagged as suspect,"°C, (m3 water × m−3 soil) × 100",recorded
 value,Temperature or moisture reading with suspect values replaced with NA,"°C, (m3 water × m−3 soil) × 100",recorded
 flag,Warning for values that exceed expected parameters,,defined
-,,,
-,,,
-,,,
-,,,
-,,,
-,,,
