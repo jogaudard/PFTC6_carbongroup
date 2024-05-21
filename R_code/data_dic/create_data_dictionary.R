@@ -4,10 +4,10 @@ library(lubridate)
 library(dataDownloader)
 
 # data import -------------------------------------------------------------
-source("code/data_dic/download_read_clean_data.R")
+source("R_code/data_dic/download_read_clean_data.R")
 
 # Code import
-source("code/functions/make_data_dictionary.R")
+source("R_code/functions/make_data_dictionary.R")
 
 # data description ------------------------------------------------------------
 description_cflux <- read_csv("R_code/data_dic/data_dic_cflux.csv")
