@@ -64,13 +64,3 @@ metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>%
 #     )
 #   ) %>%
 #   bind_rows(meta_seedclim)
-
-
-
-
-
-
-
-
-
-
