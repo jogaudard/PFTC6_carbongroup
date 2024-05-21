@@ -29,19 +29,17 @@ sources <- list("R_code/data_cleaning/make_metadata.R",
 
 sapply(sources, source)
 
-# Update the site names in metaturf ----
-metaturf_clean <- metaturf |>
-  rename(destSiteID = destination, origSiteID = origin)
-
+# creating full dataset ---------------------------------------------------
 cflux_all_clean <- bind_rows(
   cflux_vikesland_corrected,
   cflux_liahovden_corrected,
   cflux_joasete_corrected,
   cflux_hogsete_corrected
 ) %>%
-  left_join(metaturf_clean)
+  left_join(metaturf)
 
 # There were missing round due to issues on the field
+# # We are missing a round in Joa and Lia
 # we need to create those two datasets.
 missing_joa <- cflux_all_clean %>%
   filter(
@@ -77,12 +75,14 @@ missing_rounds <- bind_rows(missing_joa, missing_lia) %>%
   )
 
 # we put them into the flux dataset
-
 cflux_all_clean <- cflux_all_clean %>%
   bind_rows(missing_rounds) |>
   # Reorganise data
   relocate(datetime, time, origSiteID, destSiteID, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
-          temp_soil, temp_airavg, flag)
+           temp_soil, temp_airavg, flag)
 
 
 write_csv(cflux_all_clean, "clean_data/PFTC6_clean_cflux_2022.csv")
+
+# to write number of flags in data paper
+cflux_all_clean %>% select(flag, flux_corrected) %>% count(flag)

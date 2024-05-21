@@ -3,9 +3,11 @@
 source("https://raw.githubusercontent.com/audhalbritter/Three-D/master/R/functions/soilmoisture_correction.R")
 
 # metadata
+
 source("R_code/data_cleaning/make_metadata.R")
 
 # Fetch the data -----
+
 library(dataDownloader)
 library(tidyverse)
 library(lubridate)
@@ -22,6 +24,7 @@ get_file(node = "fcbw4",
          file = "PFTC6_microclimate_metadata_all.csv",
          path = "raw_data",
          remote_path = "raw_data/vii. microclimate_raw_data")
+
 
 #Unzip microclimate data
 unzip("raw_data/PFTC6_microclimate_2022.zip", exdir = "raw_data/microclimate")
@@ -51,11 +54,11 @@ course_end <- ymd_hms("2022-08-08T00:00:01")
 
 metatomst <- metatomst %>%
   mutate(
-    datetime_begin = case_when(
+    datetime_in = case_when(
       datetime_in <= course_start ~ course_start,
       datetime_in > course_start ~ datetime_in
     ),
-    datetime_end = case_when(
+    datetime_out = case_when(
       datetime_out >= course_end ~ course_end,
       datetime_out < course_end ~ datetime_out
     )
@@ -106,7 +109,7 @@ microclimate.clean = microclimate %>%
   # This is now either the full days of the flux observations (midnight to midnight)
   # or when the sensor was in the soil
   # whichever is longer
-  filter(datetime > datetime_begin & datetime < datetime_end) %>%
+  filter(datetime > datetime_in & datetime < datetime_out) %>%
   mutate(
     flag = case_when(
       # air colder than expected
@@ -123,17 +126,17 @@ microclimate.clean = microclimate %>%
       sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
       # soil drier than expected
       sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
-      # soil wetter than expected
-      sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist",
+      # # soil wetter than expected # no such thing in wester Norway
+      # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
       TRUE ~ "keep"
-    )
-  ) |>
+    )) |>
   # Replace flagged values with NA
   rename(value_original = value) |>
   mutate(value = case_when(
     flag != "keep" ~ NA,
     TRUE ~ value_original
-  ))
+  )) |>
+  select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
 
 # Graphs for visualizing cuts ----
 # ## Air temperature ----
@@ -201,18 +204,14 @@ threeD_microclimate <- threeD_microclimate_all %>%
   ) %>%
   rename(
     datetime = date_time,
-    # site = destSiteID,
     datetime_in = initiale_date_time,
     datetime_out = end_date_time,
     soil_moisture = soilmoisture
   ) %>%
-  select(datetime, loggerID, turfID, destSiteID,
-         soil_temperature, ground_temperature, air_temperature, soil_moisture,
-         datetime_in, datetime_out) %>%
-  pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value") |>
-  # Flag values following the same practice as our data
+  select(datetime, loggerID, turfID, destSiteID, soil_temperature, ground_temperature, air_temperature, soil_moisture, datetime_in, datetime_out) %>%
+  pivot_longer(cols = c(air_temperature, soil_temperature, ground_temperature, soil_moisture), names_to = "sensor", values_to = "value") %>%
   mutate(
-    flag = case_when(
+    flag = case_when( # even tho the Three-D data were cleaned by the Three-D team, we apply the same filter that was applied to our data, out of consistency
       # air colder than expected
       sensor == "air_temperature" & value < -40 ~ "cut_Tmin_air",
       # air warmer than expected
@@ -227,35 +226,23 @@ threeD_microclimate <- threeD_microclimate_all %>%
       sensor == "soil_temperature" & value > 20 ~ "cut_Tmax_soil",
       # soil drier than expected
       sensor == "soil_moisture" & value < 0 ~ "cut_min_moist",
-      # soil wetter than expected
-      sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist",
+      # soil wetter than expected #no such thing in Western Norway
+      # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
       TRUE ~ "keep"
-    )
-  ) |>
+    )) |>
   # Replace flagged values with NA
   rename(value_original = value) |>
   mutate(value = case_when(
     flag != "keep" ~ NA,
     TRUE ~ value_original
-  ))
+  )) |>
+  select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
 
-# Make clean CSV ----
 microclimate.export <- microclimate.clean %>%
-  filter(
-    flag == "keep"
-  ) %>%
-  # select(datetime, loggerID, turfID, destSiteID, sensor, value) %>%
-  distinct() |>
-# group_by(datetime, loggerID, turfID, site, sensor, value) %>%
-# mutate(
-#   n = n()
-# ) %>%
-# filter(n == 1) %>%  # we keep only the row that are unique
-# select(!n) %>%
-# ungroup()
   bind_rows(threeD_microclimate) %>%
-  left_join(metaturf) %>%
-  dplyr::rename(climate_variable = sensor) %>%
-  select(datetime, destSiteID, loggerID, turfID, warming, climate_variable, value_original, value, flag)
+  left_join(metaturf)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
+
+# to write number of flags in data paper
+microclimate.export %>% select(flag, value) %>% count(flag)
