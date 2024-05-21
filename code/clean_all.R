@@ -99,10 +99,10 @@ left_join(metaturf)
 # we need to create those two datasets.
 missing_joa <- cflux_all_clean %>%
   filter(
-    destination == "Joasete"
+    destSiteID == "Joasete"
     # & type != "GPP"
   ) %>%
-  select(destination, turfID, origin, warming) %>%
+  select(destSiteID, turfID, origSiteID, warming) %>%
   distinct() %>%
   mutate(
     # destSiteID = factor(destSiteID, level = c("81 AN1C 81", "3 WN1C 85", "")) # no need, turfID already in right order
@@ -113,9 +113,9 @@ missing_joa <- cflux_all_clean %>%
 
 missing_lia <- cflux_all_clean %>%
   filter(
-    destination == "Liahovden"
+    destSiteID == "Liahovden"
   ) %>%
-  select(destination, turfID, origin, warming) %>%
+  select(destSiteID, turfID, origSiteID, warming) %>%
   distinct() %>%
   mutate(
     NEE = seq(ymd_hms("2022-07-28 00:30:00"), ymd_hms("2022-07-28 00:59:00"), by = 600), #fluxes were measured about every 10 minutes
@@ -135,7 +135,7 @@ missing_rounds <- bind_rows(missing_joa, missing_lia) %>%
 cflux_all_clean <- cflux_all_clean %>%
   bind_rows(missing_rounds) |>
   # Reorganise data
-  relocate(datetime, time, origin, destination, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
+  relocate(datetime, time, origSiteID, destSiteID, turfID, warming, type, fluxID, flux, flux_noflag, flux_corrected, PARavg,
           temp_soil, temp_airavg, flag)
 
 
