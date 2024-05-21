@@ -299,9 +299,6 @@ threeD_microclimate <- threeD_microclimate_all %>%
     # site = str_replace_all(destSiteID, c("Joa" = "Joasete", "Vik" = "Vikesland", "Lia" = "Liahovden"))
       select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
 
-# to write number of flags in data paper
-threeD_microclimate %>% bind_rows(microclimate.clean) %>% select(flag, value) %>% count(flag)
-
 microclimate.export <- microclimate.clean %>%
   bind_rows(threeD_microclimate) %>%
   left_join(metaturf) #%>%
@@ -309,6 +306,9 @@ microclimate.export <- microclimate.clean %>%
 # select(!flag)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
+
+# to write number of flags in data paper
+microclimate.export %>% select(flag, value) %>% count(flag)
 
 # more graphs to see the trends per site ----------------------------------
 
