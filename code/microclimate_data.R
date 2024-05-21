@@ -300,15 +300,13 @@ threeD_microclimate <- threeD_microclimate_all %>%
       select(datetime, loggerID, turfID, destSiteID, sensor, value_original, value, flag, datetime_in, datetime_out)
 
 # to write number of flags in data paper
-threeD_microclimate %>% select(flag, value) %>% count(flag)
+threeD_microclimate %>% bind_rows(microclimate.clean) %>% select(flag, value) %>% count(flag)
 
 microclimate.export <- microclimate.clean %>%
   bind_rows(threeD_microclimate) %>%
   left_join(metaturf) #%>%
 # drop_na(value) %>%  # in case we want to produce a dataset without NAs
 # select(!flag)
-
-
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
 
