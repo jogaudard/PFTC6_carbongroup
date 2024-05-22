@@ -19,9 +19,9 @@ get_file(node = "fcbw4",
          path = "clean_data",
          remote_path = "vii. microclimate")
 
-fluxes <- read_csv("clean_data/PFTC6_24h_cflux_allsites_2022.csv")
+fluxes <- read_csv("clean_data/PFTC6_24h_cflux_2022.csv")
 
-microclimate <- read_csv("clean_data/PFTC6_microclimate_allsites_2022.csv") %>% 
+microclimate <- read_csv("clean_data/PFTC6_microclimate_2022.csv") %>% 
   mutate(
     # site = str_to_lower(site),
     # site = as_factor(site)
