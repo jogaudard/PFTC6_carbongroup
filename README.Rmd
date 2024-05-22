@@ -18,13 +18,15 @@ Net Ecosystem Exchange (NEE) and Ecosystem Respiration (ER) along with Photosynt
 
 # Data dictionnaries
 ## CO~2~ fluxes
-<!-- ### Vikesland -->
 
 ```{r, echo=FALSE}
 knitr::kable(cflux_dic)
 ```
 
 ## Microclimate
+```{r, echo=FALSE}
+knitr::kable(microclimate_dic)
+```
 
 <!-- # Figures -->
 <!-- ```{r, echo=FALSE, fig.align='left', fig.cap=""} -->
@@ -52,7 +54,7 @@ Note: those data are representative of a single point in the season (close to pe
  - How much are the traits explaining the variability in fluxes? Can the altitude gradient and the transplanting explain more of that variation?
 
 
-# Field measurements
+# Field measurement instructions
 
 ## Start of 24h campaign
 
