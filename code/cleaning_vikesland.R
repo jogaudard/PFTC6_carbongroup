@@ -1,417 +1,1556 @@
 
 # This script will be to separate c-flux data into turfIDs and clean the fluxes before we calculate them
 
-source("code/functions.R")
-
-library("dataDownloader")
+# source("code/functions.R")
+#
+# library("dataDownloader")
+#
+# library("tidyverse")
+#
+# library("scales")
 
 # download raw data
 # download files from OSF ---------------------------------------
 
-get_file(node = "pk4bg",
-         file = "Three-D_24h-cflux_vikesland_2022.csv",
+get_file(node = "fcbw4",
+         file = "PFTC6_CO2_vikesland_2022.csv",
          path = "raw_data",
-         remote_path = "RawData/C-Flux")
+         remote_path = "raw_data/v. c_flux_raw_data")
 
-get_file(node = "pk4bg",
+get_file(node = "fcbw4",
          file = "PFTC6_cflux_field-record_vikesland.csv",
          path = "raw_data",
-         remote_path = "RawData/C-Flux")
+         remote_path = "raw_data/v. c_flux_raw_data")
 
-get_file(node = "pk4bg",
-         file = "PFTC6_cflux_cutting_vikesland.csv",
-         path = "raw_data",
-         remote_path = "RawData/C-Flux")
+# get_file(node = "fcbw4",
+         # file = "PFTC6_cflux_cutting_vikesland.csv",
+         # path = "raw_data",
+         # remote_path = "raw_data/c_flux_raw_data")
 
 # If you manage to download dataDownloader and download the data, you are good! Congrats!
 # In case you did not manage to download the data manually. Call me :-)
 
 # cleaning Vikesland ------------------------------------------------------
 # read the files
-co2_24h_vikesland <- read_csv("raw_data/Three-D_24h-cflux_vikesland_2022.csv", na = c("#N/A"))
-  
+co2_24h_vikesland <- read_csv("raw_data/PFTC6_CO2_vikesland_2022.csv", na = c("#N/A"))
+
 record_vikesland <- read_csv("raw_data/PFTC6_cflux_field-record_vikesland.csv", na = c(""))
 
 # matching the CO2 concentration data with the turfs using the field record
 # we have defined a default window length of 60 secs.
 
-co2_fluxes_vikesland_60 <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, window_length = 60)
+co2_fluxes_vikesland <- match.flux.PFTC6(co2_24h_vikesland, record_vikesland, startcrop = 10, window_length = 160, measurement_length = 180)
 
-# cutting Vikesland ------------------------------------------------------
-cutting_vikesland <- read_csv("raw_data/PFTC6_cflux_cutting_vikesland.csv", na = "", col_types = "dcc")
 
-co2_cut_vikesland_60 <- co2_fluxes_vikesland_60 %>% 
-  left_join(cutting_vikesland, by = "fluxID") %>% 
-  mutate(
-    start_cut = ymd_hms(paste(date, .$start_cut)),
-    end_cut = ymd_hms(paste(date, .$end_cut))
+# zhao18 method -----------------------------------------------------------
+
+slopes_zhao18_vikesland <- co2_fluxes_vikesland %>%
+  filter(
+    datetime > start_window &
+      datetime < end_window
+  ) %>%
+  fitting.flux_nocut2(
+    weird_fluxesID = c(73, 141)
   )
 
-# adjusting the time window with manual cuts ------------------------------------------------------
+slopes_zhao18_metrics_vikesland <- slopes_zhao18_vikesland %>%
+  select(fluxID, b, b_est, RMSE, tz, flag, cor_coef) %>%
+  distinct()
 
-co2_cut_vikesland_60 <- co2_cut_vikesland_60 %>%
-  mutate(
-  start_window = case_when(
-    is.na(start_cut) == FALSE ~ start_cut,
-    TRUE ~ start_window
-  ),
-  end_window = case_when(
-    is.na(end_cut) == FALSE ~ end_cut,
-    TRUE ~ end_window
-  ),
-  cut = case_when(
-    datetime <= start_window | datetime >= end_window ~ "cut",
-    # fluxID ==  & datetime %in%  ~ "cut",
-    TRUE ~ "keep"
-    ),
-  cut = as_factor(cut)
-  )
+# graph them
+theme_set(theme_grey(base_size = 5))
 
-# vizz Vikesland -------------------------------------------------------
+slopes_zhao18_vikesland %>%
+  filter(
+    fluxID %in% c(1:100)
+  ) %>%
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2), size = 0.2) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey",
+    "start_error" = "red"
+  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # ylim(400,800) +
+  facet_wrap(~fluxID, scales = "free")
 
-# visualizing 60 secs cuts in Vikesland (it´s in comments, just in case you don´t want to visualize it)
+ggsave("vikesland1.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
 
-# theme_set(theme_grey(base_size = 5))
-# 
-# co2_cut_vikesland_60 %>%
-#   ggplot(aes(x = datetime, y = CO2, colour = cut)) +
-#   geom_line(size = 0.2, aes(group = fluxID)) +
-#   # geom_line(size = 0.2) +
-#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
-#   # scale_x_date(date_labels = "%H:%M:%S") +
-#   facet_wrap(vars(fluxID), ncol = 30, scales = "free")
+gc()
 
-# ggsave("fluxes_details_vikesland.png", height = 40, width = 80, units = "cm")
+# Graph them
+slopes_zhao18_vikesland %>%
+  filter(
+    fluxID %in% c(101:200)
+  ) %>%
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2), size = 0.2) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey",
+    "start_error" = "red"
+  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # ylim(400,700) +
+  facet_wrap(~fluxID, scales = "free")
+
+gc()
+
+ggsave("vikesland2.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
+
+#Graph them
+slopes_zhao18_vikesland %>%
+  filter(
+    fluxID %in% c(201:300)
+  ) %>%
+  ggplot(aes(datetime)) +
+  geom_point(aes(y = CO2), size = 0.2) +
+  geom_line(aes(y = fit), linetype = "longdash") +
+  geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+  scale_color_manual(values = c(
+    "keep" = "green",
+    "cut" = "red",
+    "ok" = "black",
+    "discard" = "red",
+    "zero" = "grey",
+    "start_error" = "red"
+  )) +
+  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+  # ylim(400,700) +
+  facet_wrap(~fluxID, scales = "free")
+
+gc()
+
+ggsave("vikesland3.png", height = 40, width = 100, units = "cm", path = "graph_fluxes")
+
+# at that stage, you should visually check the fluxes before going on with the calculations
+
+# clean cut ---------------------------------------------------------------
+
+# co2_cut_keep_vikesland <- filter(slopes_zhao18_vikesland,
+#                        cut == "keep")  #to keep only the part we want to keep
+
+co2_cut_keep_vikesland <- slopes_zhao18_vikesland
 
 
-# produce clean CO2 cut --------------------------------------------------------
+# cleaning PAR ------------------------------------------------------------
 
-co2_cut_60_keep <- filter(co2_cut_vikesland_60,
-                  cut == "keep")  #to keep only the part we want to keep
-
-# cleaning PAR ------------------------------------------
-
-# for ER we look at the range of PAR to see if there are errors
-filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
-  summarise(
-    rangePAR = range(PAR)
-  )
-
-# for NEE we look at the range of PAR to see if there are errors
-
-filter(co2_cut_60_keep, type == "NEE") %>% #faster than looking at the graph!
-  summarise(
-    rangePAR = range(PAR)
-  )
-
-# visualize PAR level ---------------------------------
-# ER ---------------------------------
-
-filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
-# quick base R plot of PAR vs time
-plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR,
-xlab = "Time of the day (hours)", 
-ylab = "Photosynthetically active radiation (PAR)",
-col = alpha("black", 0.1), pch=20, main= "Vikesland (469 m a.s.l.)\nPAR during ER measures")
-abline(h=0, col="red")
-
-## same plot on ggplot2
-
-PAR_wrong_duringER_plot <- co2_cut_60_keep %>% 
-  filter(type=="ER") %>% 
-  ggplot(aes(x = datetime,  y = PAR)) +
-  geom_point(alpha = 1/10, size = 2) +
-  geom_hline(
-    yintercept = 0, linetype = "dashed", colour = "red") +
-  scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
-  ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
-  theme(axis.ticks = element_line(size=1.5), 
-        axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
-        axis.title = element_text(size = 14, color ="darkgrey"),
-        axis.title.x = element_blank(),
-        axis.line = element_line(color = "grey"),
-        axis.text = element_text(size = 12),
-        # legend.position = "none",
-        legend.text = element_text(size = 8),
-        legend.title = element_text(size = 8),
-        #legend.key.width= unit(0.4, 'cm'),
-        #panel.grid.major.x = element_blank(), 
-        #panel.grid.major.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        plot.title = element_text(size=16))
-       # panel.background = element_rect(
-        #  fill = 'white', colour = 'grey'))
-  
-
-# now we are replacing negative PAR values in type=ER by zero values.
-
-co2_cut_60_keep <- co2_cut_60_keep %>% 
+co2_cut_keep_vikesland <- co2_cut_keep_vikesland %>%
   mutate(
     PAR =
-  case_when(
-    type=="ER" & PAR <= 0 ~ 0, 
-    TRUE~PAR
+      case_when(
+        type=="ER" & PAR <= 0 ~ 0,
+        TRUE~PAR
+      )
+  )
+
+# there were some PAR sensor failures
+co2_cut_keep_vikesland <- co2_cut_keep_vikesland %>%
+  mutate(
+    PAR = case_when(
+      fluxID %in% c(143, 153, 155, 177, 179, 151)
+      & PAR < 10
+      ~ NA_real_,
+      TRUE ~ PAR
     )
   )
 
-# let´s plot the PAR values for ER again:
-# quick plot with base R
-filt_ER_60 <- filter(co2_cut_60_keep, type == "ER")
-
-plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
-abline(h=0, col="red")
-
-# same plot with ggplot2
-
-PAR_right_duringER_plot <- co2_cut_60_keep %>% 
-  filter(type=="ER") %>% 
-  ggplot(aes(x = datetime,  y = PAR)) +
-  geom_point(alpha = 1/10, size = 2) +
-  geom_hline(
-    yintercept = 0, linetype = "dashed", colour = "red") +
-  scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
-  ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
-  theme(axis.ticks = element_line(size=1.5), 
-        axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
-        axis.title = element_text(size = 14, color ="darkgrey"),
-        axis.title.x = element_blank(),
-        axis.line = element_line(color = "grey"),
-        axis.text = element_text(size = 12),
-        # legend.position = "none",
-        legend.text = element_text(size = 8),
-        legend.title = element_text(size = 8),
-        #legend.key.width= unit(0.4, 'cm'),
-        #panel.grid.major.x = element_blank(), 
-        #panel.grid.major.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        plot.title = element_text(size=16))
-# panel.background = element_rect(
-#  fill = 'white', colour = 'grey'))
-
-
-#unique(filt_ER_60[filt_ER_60$PAR > 60,]$fluxID) # identify the weird values 
-#range(filt_ER_60[filt_ER_60$PAR > 60,]$PAR) # and the PAR levels (no big deal)
-#unique(filt_ER_60[filt_ER_60$PAR > 60,]$datetime) # who was on the field at this time...
-
-#  NEE ---------------------------------
-
-filt_NEE_60 <- filter(co2_cut_60_keep, type == "NEE") # I am just filtering to make things easier
-
-# quick plot with base R
-plot(filt_NEE_60$PAR) # Plot the PAR values
-plot(x= filt_NEE_60$datetime, y= filt_NEE_60$PAR,
-     xlab = "Time of the day (hours)", 
-     ylab = "Photosynthetically active radiation (PAR)",
-     col = alpha("blue", 0.1), pch=16,
-) # Plot the PAR vs time
-abline(h = 0, col="blue")
-
-# same plot with ggplot2
-PAR_wrong_duringNEE_plot <- co2_cut_60_keep %>% 
-  filter(type=="NEE") %>% 
-  ggplot(aes(x = datetime,  y = PAR)) +
-  geom_point(alpha = 1/10, size = 2) +
-  geom_hline(
-    yintercept = 0, linetype = "dashed", colour = "red") +
-  scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
-  ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
-  theme(axis.ticks = element_line(size=1.5), 
-        axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
-        axis.title = element_text(size = 14, color ="darkgrey"),
-        axis.title.x = element_blank(),
-        axis.line = element_line(color = "grey"),
-        axis.text = element_text(size = 12),
-        # legend.position = "none",
-        legend.text = element_text(size = 8),
-        legend.title = element_text(size = 8),
-        #legend.key.width= unit(0.4, 'cm'),
-        #panel.grid.major.x = element_blank(), 
-        #panel.grid.major.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        plot.title = element_text(size=16))
-# panel.background = element_rect(
-#  fill = 'white', colour = 'grey'))
-
-# Visualize individual PAR measures-----------------------------------------
-
-theme_set(theme_grey(base_size = 5))
- 
-filt_NEE_60 %>%
-  ggplot(aes(x = datetime, y = PAR, colour = cut)) +
-  geom_point(size = 0.2, aes(group = fluxID)) +
-  # geom_line(size = 0.2) +
-  scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
-  # scale_x_date(date_labels = "%H:%M:%S") +
-  facet_wrap(vars(fluxID), ncol = 30, scales = "free")
-
-# Replace negative and odd PAR values in type = NEE by NA values ------------
-
-co2_cut_60_keep <- co2_cut_60_keep %>% 
-  mutate(
-    PAR =
-      case_when(
-          fluxID == "195"
-          ~ NA_real_, 
-        TRUE~PAR
-      )
-  ) %>% 
-  mutate(
-    PAR =
-      case_when(
-        fluxID == "143"
-        ~ NA_real_, 
-        TRUE~PAR
-      )
-  ) %>% 
-  mutate(
-    PAR =
-      case_when(
-        fluxID == "153"
-        ~ NA_real_, 
-        TRUE~PAR
-      )
-  ) %>% 
-  mutate(
-    PAR =
-      case_when(
-        fluxID == "155"
-        ~ NA_real_, 
-        TRUE~PAR
-      )
-  ) %>% 
-  mutate(
-    PAR =
-      case_when(
-        fluxID == "177"
-        ~ NA_real_, 
-        TRUE~PAR
-      )
-  ) %>% 
-  mutate(
-    PAR =
-      case_when(
-        fluxID == "179"
-        ~ NA_real_, 
-        TRUE~PAR
-      )
-  ) %>% 
-  mutate(
-    PAR =
-      case_when(
-        fluxID == "161" & PAR < 50
-        ~ NA_real_, 
-        TRUE~PAR
-      )
+filter(co2_cut_keep_vikesland, type == "NEE") %>% #faster than looking at the graph!
+  summarise(
+    rangePAR = range(PAR, na.rm = TRUE)
   )
 
-# quick plot with base R ---------------------------------------
-filt_NEE_60 <- filter(co2_cut_60_keep, type == "NEE") # I am just filtering to make things easier
-plot(filt_NEE_60$PAR) # Plot the PAR values
-plot(x= filt_NEE_60$datetime, y= filt_NEE_60$PAR,
-     xlab = "Time of the day (hours)", 
-     ylab = "Photosynthetically active radiation (PAR)",
-     col = alpha("blue", 0.1), pch=16,
-) # Plot the PAR vs time
+# Graph them
+co2_cut_keep_vikesland %>%
+  filter(
+    type == "NEE"
+    # & fluxID %in% c(151
+      # 143
+      # 153
+      # 155
+      # 177
+      # 179
+      # )
+    # & PAR < 5
+  ) %>%
+  mutate(
+    datetime = ymd_hms(datetime),
+    time = hms::as_hms(datetime)
+  ) %>%
+  ggplot(aes(x = time, y = PAR)) +
+  geom_point() +
+  geom_text(aes(label = fluxID))
 
-abline(h = 0, col="blue")
-############################################################################3
-
-# same plot with ggplot2 -----------------------------------
-PAR_right_duringNEE_plot <- co2_cut_60_keep %>% 
-  filter(type=="NEE") %>% 
-  ggplot(aes(x = datetime,  y = PAR)) +
-  geom_point(alpha = 1/10, size = 2) +
-  geom_hline(
-    yintercept = 0, linetype = "dashed", colour = "red") +
-  scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
-  ggtitle("Vikesland (469 m a.s.l.)\nPAR values over 24 h") +
-  theme(axis.ticks = element_line(size=1.5), 
-        axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
-        axis.title = element_text(size = 14, color ="darkgrey"),
-        axis.title.x = element_blank(),
-        axis.line = element_line(color = "grey"),
-        axis.text = element_text(size = 12),
-        # legend.position = "none",
-        legend.text = element_text(size = 8),
-        legend.title = element_text(size = 8),
-        #legend.key.width= unit(0.4, 'cm'),
-        #panel.grid.major.x = element_blank(), 
-        #panel.grid.major.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        plot.title = element_text(size=16))
-# panel.background = element_rect(
-#  fill = 'white', colour = 'grey'))
-
-
-# Discussion with students in the class  ----------------------------------
-
-# ... what should we do now??
-# 1. think about weird PAR values. what could be happening, and how to solve it? (Discuss in class)
-
-# 2. we should also manually modify the cuts for those curve that does not look fine with the automatic cuts.
+ggsave("PAR_NEE_vikesland.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
 
 
 # calculation of fluxes ---------------------------------------------------
 
-cflux_vikesland <- co2_cut_60_keep %>% 
-  flux.calc.PFTC6()
+cflux_vikesland <- co2_cut_keep_vikesland %>%
+  mutate(
+    slope = case_when(
+      flag == "ok" ~ slope_tz,
+      flag == "zero" ~ 0,
+      flag %in% c("discard", "start_error", "weird_flux") ~ NA_real_
+    ),
+    slope_noflag = slope_tz
+  ) %>%
+  flux.calc.zhao18()
+
+cflux_vikesland_GPP <- GPP.PFTC6(cflux_vikesland)
 
 
-# calculating GPP ---------------------------------------------------------
+# correction and verification ---------------------------------------------
 
-# cflux_vikesland_GPP <- cflux_vikesland %>%
-#   mutate(
-#     pairID = case_when(
-#       type == "NEE" ~ fluxID,
-#       type == "ER" ~ fluxID-1
-#     ),   # problem with datetime, it is different between ER and NEE. Let's use datetime NEE
-#     # datetime = case_when(
-#     #   type == "NEE" ~ datetime,
-#     #   type == "ER" ~ NA_real_
-#     # ),
-#     turfID = as_factor(turfID),
-#     type = as_factor(type)
-#   ) %>% 
-#   select(!c(fluxID)) %>%
-#   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>% 
-#   # select(!c(PAR_corrected_flux)) %>%
-#   # select(campaign, turfID, date, type, corrected_flux) %>%
-#   pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg)) %>% 
-#   
-#   # pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>% 
-#   rename(
-#     ER = flux_ER,
-#     NEE = flux_NEE
+cflux_vikesland_corrected <- GPP_corr.PFTC6(cflux_vikesland_GPP,
+                                          start_night = "22:30:00", # we expand the window because there still are some positive GPP values just at the edge of the usual window
+                                          end_night = "04:30:00",
+                                          strategy = "max")
+
+# Graph them
+cflux_vikesland_corrected %>%
+  filter(
+    type != "NEE"
+    # & turfID == "27 AN3C 27"
+  ) %>%
+  ggplot(aes(x = time, y = flux_corrected, color = type, label = time)) +
+  # geom_text() +
+  # scale_x_datetime(date_breaks = "5 hour", minor_breaks = "1 hour", date_labels = "%e/%m \n %H:%M") +
+  geom_point()
+
+ggsave("24h_vikesland.png", height = 30, width = 40, units = "cm", path = "graph_fluxes")
+
+
+# write_csv(cflux_joasete_corrected, "clean_data/PFTC6_24h-cflux_liahovden_2022.csv")
+
+# previous method & tests -------------------------------------------------
+
+
+
+# # cutting Vikesland ------------------------------------------------------
+# # cutting_vikesland <- read_csv("raw_data/PFTC6_cflux_cutting_vikesland.csv", na = "", col_types = "dcc")
+# # cutting_vikesland <- tibble( #bypass manual cuts
+# #   fluxID = c(1:5),
+# #   start_cut = NA,
+# #   end_cut = NA
+# # )
+# #
+# # co2_cut_vikesland <- co2_fluxes_vikesland %>%
+# #   left_join(cutting_vikesland, by = "fluxID") %>%
+# #   mutate(
+# #     start_cut = ymd_hms(paste(date, .$start_cut)),
+# #     end_cut = ymd_hms(paste(date, .$end_cut))
+# #   )
+#
+#
+# # adjusting the time window with manual cuts ------------------------------------------------------
+#
+# # co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     # time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     # time = as.double(time),
+# #     tmax = max(datetime[CO2 == max(CO2)]),
+# #     tmin = min(datetime[CO2 == min(CO2)]),
+# #     start_cut = case_when(
+# #       tmax > tmin ~ tmin - 20,
+# #       tmin > tmax ~ tmax - 20
+# #     ),
+# #     end_cut = case_when(
+# #       tmax < tmin ~ tmin + 20,
+# #       tmin < tmax ~ tmax + 20
+# #     ),
+# #     start_window = case_when(
+# #       start_cut > start_window ~ start_cut,
+# #       TRUE ~ start_window
+# #     ),
+# #     end_window = case_when(
+# #       end_cut < end_window ~ end_cut,
+# #       TRUE ~ end_window
+# #     ),
+# #     cut = case_when(
+# #       datetime <= start_window | datetime >= end_window ~ "cut",
+# #       # fluxID ==  & datetime %in%  ~ "cut",
+# #       fluxID == 113 ~ "cut", #starts at 900ppm
+# #       fluxID == 185 ~ "cut", #starts at 900ppm
+# #       fluxID == 118 ~ "cut", #starts at 600ppm
+# #       fluxID == 133 ~ "cut", #starts at 600ppm
+# #       fluxID == 134 ~ "cut", #starts at 600ppm
+# #       TRUE ~ "keep"
+# #     ),
+# #     cut = as_factor(cut)
+# #   ) %>%
+# #   ungroup()
+# #
+# # cut_co2_fluxes_vikesland <- co2_fluxes_vikesland %>%
+# #   filter(cut == "keep")
+#
+#
+# # automatic cutting -------------------------------------------------------
+#
+# # In Zhao et al 2018, the idea is to identify the first stationnary point (derivative is 0) and cut the measurement there.
+#
+# # Here is the equation we want to use:
+# # C = Cm + a*(t-tz) + (Cz - Cm)*exp(-b*(t-tz))
+# # where C is CO2 concentration
+# # Cm is peak (or dip!?) at beginning of measurement
+# # t is time since start of measurement
+# # tz is time at which C = Cz (theoretically tz=0?)
+# # Cz is the intercept of linear regression of first 15s of measurement
+#
+# # finding Cz and tz
+#
+# # Cz_window <- 15
+# # Cm_window <- 100
+# #
+# #
+# #
+# # Cm_df <- cut_co2_fluxes_vikesland %>%
+# #   # filter(
+# #   #   cut == "keep"
+# #   # ) %>%
+# #   group_by(fluxID) %>%
+# #   distinct(CO2, .keep_all = TRUE) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time)
+# #   ) %>%
+# #   # filter(
+# #   #   time < Cm_window
+# #   # ) %>%
+# #   mutate(
+# #     Cmax = max(CO2),
+# #     Cmin = min(CO2),
+# #     # tmax = case_when(
+# #     #         CO2 == Cmax ~ time,
+# #     #         CO2 =! Cmax ~ NA_real_
+# #     #       ),
+# #     tmax = time[CO2 == Cmax],
+# #     tmin = time[CO2 == Cmin]
+# #   ) %>%
+# #   select(fluxID, Cmax, Cmin, tmax, tmin) %>%
+# #   ungroup() %>%
+# #   distinct(Cmax, Cmin, .keep_all = TRUE)
+# #
+# # Cm_slope <- cut_co2_fluxes_vikesland %>%
+# #   # filter(
+# #   #   cut == "keep"
+# #   # ) %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time)
+# #   ) %>%
+# #   # filter(
+# #   #   time < Cm_window
+# #   # ) %>%
+# #   do({model = lm(CO2 ~ time, data=.)    # create your model
+# #   data.frame(tidy(model),              # get coefficient info
+# #              glance(model))}) %>%          # get model info
+# #   filter(term == "time") %>%
+# #   rename(slope = estimate) %>%
+# #   select(fluxID, slope) %>%
+# #   ungroup()
+# #
+# # Cm_df <- left_join(Cm_df, Cm_slope) %>%
+# #   mutate(
+# #     Cm = case_when(
+# #       slope < 0 ~ Cmin,
+# #       slope > 0 ~ Cmax
+# #     ),
+# #     tm = case_when(
+# #       slope < 0 ~ tmin,
+# #       slope > 0 ~ tmax
+# #     )
+# #   ) %>%
+# #   select(fluxID, Cm, tm, slope) %>%
+# #   ungroup()
+#
+# # tz_df <- co2_fluxes_vikesland %>%
+# #   left_join(Cm_df) %>%
+# #   # filter(
+# #   #   cut == "keep"
+# #   # ) %>%
+# #   group_by(fluxID) %>%
+# #   distinct(CO2, .keep_all = TRUE) %>% # in case there are identical CO2 values
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time)
+# #   ) %>%
+# #   # select(fluxID, time, CO2, Cm) %>%
+# #   mutate(
+# #     tz = case_when(
+# #       CO2 == Cm ~ time,
+# #       CO2 =! Cm ~ NA_real_
+# #     )
+# #   ) %>%
+# #   fill(tz) %>%
+# #   ungroup() %>%
+# #   select(fluxID, tz) %>%
+# #   drop_na(tz) %>%
+# #   unique()
+#
+# # Cz_df <- co2_fluxes_vikesland %>%
+# #   left_join(tz_df) %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time)
+# #   ) %>%
+# #   filter(
+# #     time >= tz
+# #     & time <= tz + Cz_window
+# #   ) %>%
+# #   do({model = lm(CO2 ~ time, data=.)    # create your model
+# #   data.frame(tidy(model),              # get coefficient info
+# #              glance(model))}) %>%          # get model info
+# #   filter(term == "(Intercept)") %>%
+# #   rename(Cz = estimate) %>%
+# #   select(fluxID, Cz) %>%
+# #   ungroup()
+#
+# # Cz_df <- cut_co2_fluxes_vikesland %>%
+# #   # filter(
+# #   #   cut == "keep"
+# #   # ) %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time)
+# #   ) %>%
+# #   select(fluxID, time, CO2) %>%
+# #   filter(
+# #     time < Cz_window
+# #   ) %>%
+# #   do({model = lm(CO2 ~ time, data=.)    # create your model
+# #   data.frame(tidy(model),              # get coefficient info
+# #              glance(model))}) %>%          # get model info
+# #   pivot_wider(id_cols = fluxID, names_from = "term", values_from = "estimate") %>%
+# #   # filter(term == "(Intercept)") %>%
+# #   rename(
+# #     Cz = "(Intercept)",
+# #     slope_Cz = time) %>%
+# #   select(fluxID, Cz, slope_Cz) %>%
+# #   ungroup()
+#
+# # Cz_df <- co2_fluxes_vikesland %>%
+# #   left_join(Cm_df) %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time),
+# #     time = time - tm
+# #   ) %>%
+# #   filter(
+# #     time >= 0
+# #     & time <= Cz_window
+# #   ) %>%
+# #   # filter(
+# #   #   time >= tm
+# #   #   & time <= tm + Cz_window
+# #   # ) %>%
+# #   do({model = lm(CO2 ~ time, data=.)    # create your model
+# #   data.frame(tidy(model),              # get coefficient info
+# #              glance(model))}) %>%          # get model info
+# #   filter(term == "(Intercept)") %>%
+# #   rename(Cz = estimate) %>%
+# #   select(fluxID, Cz) %>%
+# #   ungroup()
+#
+# # tz_df <- co2_fluxes_vikesland %>%
+# #   left_join(Cz_df) %>%
+# #   # filter(
+# #   #   cut == "keep"
+# #   # ) %>%
+# #   group_by(fluxID) %>%
+# #   distinct(CO2, .keep_all = TRUE) %>% # in case there are identical CO2 values
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.double(time)
+# #   ) %>%
+# #   # select(fluxID, time, CO2, Cm) %>%
+# #   mutate(
+# #     tz = case_when(
+# #       CO2 == Cz ~ time,
+# #       CO2 =! Cz ~ NA_real_
+# #     )
+# #   ) %>%
+# #   # fill(tz) %>%
+# #   ungroup() %>%
+# #   select(fluxID, tz) %>%
+# #   drop_na(tz) %>%
+# #   unique()
+#
+# # try with fluxID 111 -----------------------------------------------------
+#
+#
+# # test_df <- co2_fluxes_vikesland %>%
+# #   filter(
+# #     # fluxID == 157
+# #     fluxID == 110
+# #     # & cut == "keep"
+# #     ) %>%
+# #   left_join(Cm_df) %>%
+# #   left_join(Cz_df) %>%
+# #   # left_join(tz_df) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.numeric(time)
+# #     # time = time - tm
+# #     # time = time - tz,
+# #     # cut = case_when(
+# #     #   time >= tz ~ "keep",
+# #     #   time < tz ~ "cut"
+# #     # )
+# #   )
+# #   # filter(
+# #   #   time >= 0
+# #   #   & time <= 120
+# #   # ) %>%
+# #   # filter(
+# #   #   time >= 25
+# #   # ) %>%
+# #   # select(datetime, time, CO2, Cz, Cm, tm, slope_Cz, slope, cut)
+# #   # filter(cut == "keep")
+# #
+# # cut_test_df <- test_df %>%
+# #   filter(
+# #     cut == "keep"
+# #   ) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.numeric(time)
+# #   )
+#
+# # coef_df <- cut_co2_fluxes_vikesland %>%
+# #   left_join(Cm_df) %>%
+# #   left_join(Cz_df) %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.numeric(time)
+# #   )
+#
+#
+# # nlc <- nls.control(maxiter = 1000)
+# # model <- nls(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)), test_df, start = list(a = 1, b= -1, tz=50), control = nlc)
+# # model <- nls(CO2 ~ CM + a * time - a *t + (Cz - Cm)*exp(b*t)*exp(-b*time), test_df)
+# # model2 <- nls(CO2 ~ Cm + (Cz - Cm)*exp(-b*(time-tz)), test_df, start = list(b=10))
+#
+# # I need to understand how to guess the start!
+#
+# # model3 <- nlme(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)), test_df)
+#
+# # model4 <- optimise(CO2 ~ Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz))
+#
+# # f <- function(data, a, tz, b) (Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz)))
+#
+# # Cmin <- optimise(f, c(50, 200), tol = 0.0001)
+#
+# # myfn <- function(data, par) {
+# #   with(data, sqrt((1/length(time)) * sum((Cm+par[1]*(time-par[2])+(Cz-Cm)*exp(-par[3]*(time-par[2]))-CO2)^2)))
+# # }
+#
+# # myfn <- function(data, par) {
+# #   with(data, sqrt((1/length(time)) * sum((par[1]+par[2]*(time-par[4])+(Cz-par[1])*exp(-par[3]*(time-par[4]))-CO2)^2)))
+# # }
+# #
+# # tz_df <- cut_co2_fluxes_vikesland %>%
+# #   # left_join(Cm_df) %>%
+# #   left_join(Cz_df) %>%
+# #   group_by(fluxID) %>%
+# #   mutate(
+# #     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+# #     time = as.numeric(time)
+# #   ) %>%
+# #   filter(
+# #     time > Cz_window
+# #   ) %>%
+# #   mutate(
+# #     Cd = abs(CO2-Cz),
+# #     tz = min(time[Cd == min(Cd)])
+# #   ) %>%
+# #   ungroup() %>%
+# #   select(fluxID, tz) %>%
+# #   distinct()
+# #
+# # # myfn <- function(data, par) {
+# # #   with(data, sqrt((1/length(time)) * sum((Cz+par[1]*(time-par[2])+(Cm-Cz)*exp(-par[3]*(time-par[2]))-CO2)^2)))
+# # # }
+# #
+# # # estimation of starting parameters
+# #
+# # # Cm can be estimated as the min (negative flux) or max (positive flux) CO2 concentration of the entire flux
+# #
+# # Cm <- cut_test_df %>%
+# #   select(Cm) %>%
+# #   unique()
+# #
+# # Cm <- Cm[[1]]
+# # Cm <- 530
+#
+# # a can be estimated as the slope of the linear regression after the last min or max, alternatively the last 60 s of the flux
+# #
+# # a <- test_df %>%
+# #   mutate(
+# #     tm = case_when(
+# #     length(time) >= tm + 20 ~ tm,
+# #     length(time) < tm + 20 ~ length(time) - 20
+# #     )
+# #   ) %>%
+# #   filter(
+# #     time > tm
+# #   ) %>%
+# #   do({model = lm(CO2 ~ time, data=.)    # create your model
+# #   data.frame(tidy(model),              # get coefficient info
+# #              glance(model))}) %>%          # get model info
+# #   filter(term == "time") %>%
+# #   rename(a = estimate) %>%
+# #   select(a) %>%
+# #   unique()
+# #
+# # a <- a[[1]]
+#
+#
+#
+# # tz can be estimated as the time of the closest CO2 measurement to Cz
+#
+# # tz <- cut_test_df %>%
+# #   filter(
+# #     time >= 15 # because we don't want the first "disturbed" 15 seconds that are used to calculade Cz
+# #   ) %>%
+# #   mutate(
+# #     Cd = abs(CO2 - Cz)
+# #   ) %>%
+# #   filter(
+# #     Cd == min(Cd)
+# #   ) %>%
+# #   select(time) %>%
+# #   rename(tz = time) %>%
+# #   unique()
+# #
+# # tz <- tz[[1]]
+# #
+# # Cz <- test_df$Cz[[1]]
+#
+# # I don't have a good idea for b at this stage
+# # let's try to estimate b assuming C fits CO2 perfectly at t = tz - 1
+# # t = tz -1 was a particular case that did not work. t = tz + 10 is more general
+#
+# # C <- cut_test_df %>%
+# #   filter(
+# #     time == max(time)
+# #   ) %>%
+# #   select(time, CO2) %>%
+# #   distinct()
+# # Ci <- C[[2]]
+# # ti <- C[[1]]
+# #
+# # a <- (Ci - Cm)/(ti-tz)
+# # # a <- 0.2
+# #
+# # Ct <- cut_test_df %>%
+# #   filter(
+# #     time == tz - 10
+# #   ) %>%
+# #   select(CO2)
+# #
+# # Ct <- Ct[[1]]
+# #
+# # b <- log((Ct - Cm + a * 10)/(Cz - Cm)) * (1/10)
+# #
+# # # we need a new idea to estimate a
+# # # 5.26390e+02 -2.63391e-01 -1.81677e-04  2.90000e+01
+# # Cm <- 5.26390e+02
+# # a <- -2.63391e-01
+# # b <- -1.81677e-04
+# # tz <- 2.90000e+01
+#
+#
+# # results <- optim(par = c(Cm, a, b, tz), fn = myfn, data = cut_test_df)
+# #
+# # f <- results$par[2] + results$par[3] * (results$par[1] - Cz) # at t = tz
+#
+# # optimise(myfn, c(-100, 200), data = test_df)
+#
+#
+# # optimize()
+#
+# # deriv(Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz), time)
+#
+#
+#
+#
+# # test_df <- test_df %>%
+# #   mutate(
+# #     time_corr = difftime(start_window[1],datetime[1] , units = "secs"), # need a correction because in test_df time is starting at beginning, not at cut
+# #     time_corr = as.double(time_corr),
+# #     # fit = predict(model)
+# #     # fit = Cm+results$par[1]*(time-results$par[2])+(Cz-Cm)*exp(-results$par[3]*(time-results$par[2]))
+# #     # fit = Cz+results$par[1]*(time-results$par[2])+(Cm-Cz)*exp(-results$par[3]*(time-results$par[2]))
+# #     fit = results$par[1]+results$par[2]*(time-results$par[4] - time_corr)+(Cz-results$par[1])*exp(-results$par[3]*(time-results$par[4] - time_corr)),
+# #     fit_slope = f * (time - time_corr) + Cz - f * (results$par[4])
+# #     # fit = Cm + results$par[1]*(time-results$par[2])
+# #     # fit = 561.8 + 0.15*(time - 10) + (562.2-561.8)*exp(-0*(time- 10))
+# #     # fit = 518 + 0.15 * (time -10)
+# #     # fit = 535 + (562-535)*exp(-0.03*(time- 80))
+# #     # fit = 530 + 0.15 * (time - 120) + (535 - 530) * exp(-0.035 * (time -120))
+# #     # fit = 545 + 0.15 * (time - 40) + (Cz - 545) * exp(-0.09 * (time - 40))
+# #
+# #   )
+#
+#
+#
+# # try with flux 106 -------------------------------------------------------
+#
+# test_106 <- co2_fluxes_vikesland %>%
+#   filter(
+#     fluxID == 111
 #   ) %>%
 #   mutate(
-#     GEP = NEE - ER
-#   ) %>% 
-#   pivot_longer(c(ER, NEE, GEP), names_to = "type", values_to = "flux") %>% 
-#   mutate(
-#     temp_soil = case_when(
-#       type == "ER" ~ temp_soilavg_ER,
-#       type == "NEE" ~ temp_soilavg_NEE,
-#       type == "GEP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
-#     ),
-#     PARavg = case_when(
-#       type == "ER" ~ PARavg_ER,
-#       type == "NEE" ~ PARavg_NEE,
-#       type == "GEP" ~ PARavg_NEE
-#       ),
-#     datetime = case_when(
-#       type == "ER" ~ datetime_ER,
-#       type == "NEE" ~ datetime_NEE,
-#       type == "GEP" ~ datetime_NEE
+#       time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs"),
+#       time = as.double(time),
+#       time2 = time^2,
+#       time3 = time^3,
+#       time4 = time^4
 #     )
-#   ) %>% 
-#   select(!c(temp_soilavg_ER, temp_soilavg_NEE, PARavg_ER, PARavg_NEE, datetime_ER, datetime_NEE))
-
-cflux_vikesland <- GPP.PFTC6(cflux_vikesland)
-
-
-write_csv(cflux_vikesland, "clean_data/Three-D_24h-cflux_vikesland_2022.csv")
-
+#
+# model_106 <- lm(CO2 ~ time4 + time3 + time2 + time, data = test_106)
+#
+# test_106 <- test_106 %>%
+#   mutate(
+#     fit = predict(model_106)
+#   )
+#
+# test_106 %>%
+#   ggplot(aes(time)) +
+#   geom_point(aes(y = CO2)) +
+#   geom_line(aes(y = fit))
+#   # do({model = lm(CO2 ~ time4 + time3 + time2 + time, data=.)    # create your model
+#   # data.frame(tidy(model),              # get coefficient info
+#   #            glance(model))}) %>%         # get model info
+#   # pivot_wider(names_from = "term", values_from = "estimate")
+#   # rename(
+#   #   a_est = time_cut
+#   # ) %>%
+#   # select(fluxID, a_est)
+#
+# # let's try ze new function -----------------------------------------------
+#
+#
+# source("code/functions.R")
+#
+#
+# slopes_zhao18 <- co2_fluxes_vikesland %>%
+#   filter(
+#     datetime > start_window &
+#       datetime < end_window
+#   ) %>%
+#   # filter(
+#   #   fluxID %in% c(106, 111, 109, 101)
+#   # ) %>%
+#   # filter(
+#   #   fluxID %in% c(106)
+#   # ) %>%
+#   fitting.flux(
+#     # weird_fluxesID = c(193, 113, 185, 118, 133, 134),
+#     # c = 1
+#   )
+#
+# slopes_zhao18_metrics <- slopes_zhao18 %>%
+#   select(fluxID, Cm, a, b, tz, Cz, slope_tz, RMSE, r.squared_full, r.squared, r.squared_slope, threshold_slope, flag, cor_coef, cor_coef_keep) %>%
+#   distinct()
+#
+# # theme_set(theme_grey(base_size = 5))
+#
+#
+# slopes_zhao18 %>%
+#   filter(
+#     fluxID %in% c(1:100)
+#   ) %>%
+#   # mutate(
+#   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+#   # ) %>%
+# ggplot(aes(datetime)) +
+#   geom_point(aes(y = CO2, color = cut), size = 0.2) +
+#   geom_line(aes(y = fit), linetype = "longdash") +
+#   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+#   # geom_line(aes(y = est_fit), linetype = "dotted") +
+#   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+#   scale_color_manual(values = c(
+#     "keep" = "green",
+#     "cut" = "red",
+#     "ok" = "black",
+#     "discard" = "red",
+#     "zero" = "grey"
+#   )) +
+#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+#   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+#   # ylim(400,800) +
+#   facet_wrap(~fluxID, scales = "free")
+#
+# ggsave("vikesland1.png", height = 40, width = 100, units = "cm")
+#
+# gc()
+#
+# slopes_zhao18 %>%
+#   filter(
+#     fluxID %in% c(101:200)
+#   ) %>%
+#   # mutate(
+#   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+#   # ) %>%
+#   ggplot(aes(datetime)) +
+#   geom_point(aes(y = CO2, color = cut), size = 0.2) +
+#   geom_line(aes(y = fit), linetype = "longdash") +
+#   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+#   # geom_line(aes(y = est_fit), linetype = "dotted") +
+#   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+#   scale_color_manual(values = c(
+#     "keep" = "green",
+#     "cut" = "red",
+#     "ok" = "black",
+#     "discard" = "red",
+#     "zero" = "grey"
+#   )) +
+#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+#   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+#   # ylim(400,700) +
+#   facet_wrap(~fluxID, scales = "free")
+#
+# gc()
+#
+# ggsave("vikesland2.png", height = 40, width = 100, units = "cm")
+#
+# slopes_zhao18 %>%
+#   filter(
+#     fluxID %in% c(201:300)
+#   ) %>%
+#   # mutate(
+#   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+#   # ) %>%
+#   ggplot(aes(datetime)) +
+#   geom_point(aes(y = CO2, color = cut), size = 0.2) +
+#   geom_line(aes(y = fit), linetype = "longdash") +
+#   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+#   # geom_line(aes(y = est_fit), linetype = "dotted") +
+#   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+#   scale_color_manual(values = c(
+#     "keep" = "green",
+#     "cut" = "red",
+#     "ok" = "black",
+#     "discard" = "red",
+#     "zero" = "grey"
+#   )) +
+#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+#   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+#   # ylim(400,700) +
+#   facet_wrap(~fluxID, scales = "free")
+#
+# ggsave("vikesland3.png", height = 40, width = 100, units = "cm")
+#
+# gc()
+#
+# # Richard idea: select 50 good ones and 50 bad ones and find a metric that differentiate them
+#
+# bad_fluxesID <- c(5, 41, 85, 98, 99, 106, 118, 128, 129, 131, 137, 139, 150, 161, 164, 180, 185, 190, 193, 197, 198, 210)
+#
+# slopes_zhao18 %>%
+#   filter(
+#     fluxID %in% bad_fluxesID
+#   ) %>%
+#   # mutate(
+#   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+#   # ) %>%
+#   ggplot(aes(datetime)) +
+#   geom_point(aes(y = CO2, color = cut), size = 0.2) +
+#   geom_line(aes(y = fit), linetype = "longdash") +
+#   geom_line(aes(y = fit_slope, color = flag), linetype = "dashed") +
+#   # geom_line(aes(y = est_fit), linetype = "dotted") +
+#   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+#   scale_color_manual(values = c(
+#     "keep" = "green",
+#     "cut" = "red",
+#     "ok" = "black",
+#     "discard" = "red",
+#     "zero" = "grey"
+#   )) +
+#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+#   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+#   ylim(400,800) +
+#   facet_wrap(~fluxID, scales = "free")
+#
+# # trying to find a metrics to show the bad ones
+#
+# slopes_zhao18_ID <- slopes_zhao18 %>%
+#   select(a, a_est, b_est, fluxID, b, Cm, RMSE, r.squared_full, r.squared, norm_RMSE, r.squared_slope, tz, flag, cor_coef, cor_coef_keep) %>%
+#   distinct() %>%
+#   mutate(
+#     quality = case_when(
+#       fluxID %in% bad_fluxesID ~ "bad",
+#       TRUE ~ "ok"
+#     )
+#   ) %>%
+#   filter(
+#     b > -1 & b < 1 # try this rule
+#     # & !fluxID %in% c(164) # visually assessed as "weird flux"
+#     # & RMSE <= 25
+#     # & r.squared_slope >= 0.12
+#     # & (r.squared > 0.5 | r.squared_slope > 0.5)
+#   )
+#
+#
+# slopes_zhao18_ID %>%
+#   pivot_longer(
+#     cols = c(a, a_est, b_est, b, Cm, RMSE, r.squared_full, r.squared, norm_RMSE, r.squared_slope, tz, cor_coef, cor_coef_keep),
+#     names_to = "metrics",
+#     values_to = "value"
+#     ) %>%
+#   filter(
+#     metrics %in% c(
+#       "r.squared_slope"
+#       , "r.squared"
+#       ,"r.squared_full"
+#       #, "b"
+#                    ,"norm_RMSE"
+#                    # , "RMSE"
+#       ,"cor_coef"
+#       ,"cor_coef_keep"
+#                    )
+#   ) %>%
+#   ggplot(aes(x = metrics, y = value, color = quality, label = fluxID)) +
+#   geom_point() +
+#   geom_line(aes(group = fluxID)) +
+#   # scale_y_continuous(trans='log10') +
+#   ylim(-200, -50) +
+#   geom_text(hjust=-1,vjust=1)
+#
+#   # facet_wrap(~metrics, scales = "free", nrow = 1)
+#
+# slopes_zhao18_badfit <- slopes_zhao18_metrics %>%
+#   filter(
+#     (b <= -1
+#     | b >= 1
+#     | RMSE > 25
+#     | r.squared_slope < -100)
+#     # | (
+#     #   r.squared < -1
+#     #   & r.squared_slope < -100
+#     #   & r.squared_full < -1))
+#     & !fluxID %in% bad_fluxesID
+#   ) %>%
+#   select(fluxID, r.squared, r.squared_full, r.squared_slope, flag)
+#
+# badfit <- slopes_zhao18_badfit %>%
+#   pull(fluxID)
+#
+# slopes_zhao18 %>%
+#   filter(
+#     # fluxID %in% badfit
+#     fluxID %in% c(161, 190)
+#     # fluxID %in% zero_fluxes
+#   ) %>%
+#   # mutate(
+#   #   est_fit = Cm_est + a_est * (time - tz_est - time_corr) + (Cz - Cm_est) * exp(- b_est * (time - tz_est - time_corr)),
+#   # ) %>%
+#   ggplot(aes(datetime)) +
+#   geom_point(aes(y = CO2, color = cut), size = 0.2) +
+#   geom_line(aes(y = fit), linetype = "longdash") +
+#   geom_line(aes(y = fit_slope), linetype = "dashed") +
+#   # geom_line(aes(y = est_fit), linetype = "dotted") +
+#   # geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+#   scale_color_manual(values = c(
+#     "keep" = "green",
+#     "cut" = "red"
+#   )) +
+#   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+#   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+#   ylim(400, 800) +
+#   facet_wrap(~fluxID, scales = "free")
+#
+# # slopes_zhao18 <- slopes_zhao18 %>%
+# #   mutate(
+# #     slope = case_when(
+# #       flag == "ok" ~ slope_tz,
+# #       flag == "discard" ~ NA_real_,
+# #       flag == "zero" ~ 0
+# #     )
+# #   )
+#
+# # CO2_fitting %>%
+# #   ggplot(aes(datetime)) +
+# #   geom_point(aes(y = CO2, color = cut)) +
+# #   geom_line(aes(y = fit), linetype = "longdash") +
+# #   geom_line(aes(y = fit_slope), linetype = "dashed") +
+# #   geom_vline(xintercept = (slopes_zhao18$start_z), linetype = "dotted") +
+# #   scale_color_manual(values = c(
+# #     "keep" = "green",
+# #     "cut" = "red"
+# #   )) +
+# #   # ylim(min(slopes_zhao18$CO2), max(slopes_zhao18$CO2)) +
+# #   # ylim(400,700) +
+# #   facet_wrap(~fluxID, scales = "free")
+#
+# # slopes_zhao18 %>%
+# #   ggplot(aes(b, slope_tz)) +
+# #   geom_point()
+# #
+# # results$par #problem: tz is calculated on the cut df, so it is not at the right place in the plot
+#
+# # calculating the new fluxes
+#
+# source("code/functions.R")
+#
+#
+# fluxes_zhao18 <- slopes_zhao18 %>%
+#   # rename(slope = slope_tz) %>%
+#   mutate(
+#     slope = case_when(
+#       flag == "ok" ~ slope_tz,
+#       flag == "zero" ~ 0,
+#       flag %in% c("discard", "start_error", "weird_flux") ~ NA_real_
+#     )
+#   ) %>%
+#   flux.calc.zhao18()%>%
+#   rename(
+#     flux_zhao18 = flux
+#   ) %>%
+#   group_by(turfID, type) %>%
+#   arrange(datetime) %>%
+#   mutate(
+#     ID = row_number(datetime)
+#   )
+#
+# # time to compare!
+#
+# get_file(node = "fcbw4",
+#          file = "PFTC6_24h-cflux_vikesland_2022.csv",
+#          path = "clean_data",
+#          remote_path = "c_flux_data")
+#
+# cflux_vikesland_old <- read_csv("clean_data/PFTC6_24h-cflux_vikesland_2022.csv", col_types = "ffdddTtd") %>%
+#   filter(
+#     type != "GPP"
+#   ) %>%
+#   group_by(turfID, type) %>%
+#   arrange(datetime) %>%
+#   mutate(
+#     ID = row_number(datetime)
+#   ) %>%
+#   ungroup
+#
+# cflux_vikesland <- full_join(cflux_vikesland_old, fluxes_zhao18, by = c("ID", "type", "turfID")) %>%
+#   mutate(
+#     difference = abs(flux_zhao18 - flux)
+#   )
+#
+# zero_fluxes <- cflux_vikesland %>%
+#   filter(
+#     flux == 0
+#     & flux_zhao18 != 0
+#     ) %>%
+#   pull(fluxID)
+#   select(fluxID, flux_zhao18, r.squared_slope)
+#
+# cflux_vikesland %>%
+#   ggplot(aes(x = flux, y = flux_zhao18, label = fluxID)) +
+#   # theme(aspect.ratio=1) +
+#   # coord_fixed() +
+#   # ylim(-25,75) +
+#   geom_point() +
+#   geom_text(hjust=-1,vjust=1)
+#
+#
+# cflux_vikesland %>%
+#   ggplot(aes(RMSE, difference, label = fluxID)) +
+#   geom_point() +
+#   geom_text(hjust=-1,vjust=1)
+#   xlim(0, 250)
+#
+#
+# summary(model)
+#
+# # fun <- function(tz, a, b, Cm, Cz, time) Cm+a*(time-tz)+(Cz-Cm)*exp(-b*(time-tz))
+# #
+# # opt <- optimise(fun, c(min(CO2):max(CO2)), Cm=test_df$Cm, Cz=test_df$Cz, time=test_df$time)
+#
+# D(expr= Cm + (Cz - Cm)*exp(-b*(time - tz)), name= time)
+#
+#
+#
+#
+# coefficients <- left_join(co2_fluxes_vikesland, Cz_df) %>%
+#   left_join(Cm_df) %>%
+#   filter(
+#     cut == "keep"
+#   ) %>%
+#   # select(fluxID, datetime, CO2, Cz) %>%
+#   mutate(
+#     time = difftime(datetime[1:length(datetime)],datetime[1] , units = "secs")
+#   ) %>%
+#   select(fluxID, time, CO2, Cz, Cm) %>%
+#   do({model = CO2 ~ Cm + a*(time-tz) + (Cz - Cm)*exp(-b*(t-tz))   # create your model
+#   data.frame(tidy(model),              # get coefficient info
+#              glance(model))}) %>%          # get model info
+#   filter(term == "(Intercept)") %>%
+#   rename(Cz = estimate) %>%
+#
+# # vizz Vikesland -------------------------------------------------------
+# #
+# # # visualizing 60 secs cuts in Vikesland (it´s in comments, just in case you don´t want to visualize it)
+# #
+# # theme_set(theme_grey(base_size = 5))
+# # co2_cut_vikesland_60 %>%
+# #    ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+# #    geom_line(size = 0.2, aes(group = fluxID)) +
+# #    # geom_line(size = 0.2) +
+# #    scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+# #    # scale_x_date(date_labels = "%H:%M:%S") +
+# #    facet_wrap(vars(fluxID), ncol = 30, scales = "free")
+# #
+# # ggsave("fluxes_details_vikesland.png", height = 40, width = 80, units = "cm")
+# #
+#
+# theme_set(theme_grey(base_size = 5))
+# co2_fluxes_vikesland %>%
+#   mutate(
+#     fluxID = as.numeric(fluxID)
+#   ) %>%
+#   filter(
+#     fluxID %in% c(140:160)
+#   ) %>%
+#    ggplot(aes(x = datetime, y = CO2, colour = cut)) +
+#    geom_line(size = 0.2, aes(group = fluxID)) +
+#    # geom_line(size = 0.2) +
+#    scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+#    # scale_x_date(date_labels = "%H:%M:%S") +
+#    facet_wrap(vars(fluxID), ncol = 3, scales = "free")
+#
+#
+# # produce clean CO2 cut --------------------------------------------------------
+#
+# co2_cut_keep <- filter(co2_cut_vikesland,
+#                           cut == "keep")  #to keep only the part we want to keep
+#
+# # cleaning PAR ------------------------------------------
+#
+# # for ER we look at the range of PAR to see if there are errors
+# # filter(co2_cut_60_keep, type == "ER") %>% #faster than looking at the graph!
+# #   summarise(
+# #     rangePAR = range(PAR)
+# #   )
+#
+# # for NEE we look at the range of PAR to see if there are errors
+#
+# # filter(co2_cut_60_keep, type == "NEE") %>% #faster than looking at the graph!
+# #   summarise(
+# #     rangePAR = range(PAR)
+# #   )
+#
+# # visualize PAR level ---------------------------------
+# # ER ---------------------------------
+#
+#
+# filt_ER_60 <- filter(co2_cut_60_keep, type == "ER") # I am just filtering to make things easier
+#
+# # quick base R plot of PAR vs time
+# plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR,
+#      xlab = "Time of the day (hours)",
+#      ylab = "Photosynthetically active radiation (PAR)",
+#      col = alpha("black", 0.1), pch=20, main= "Vikesland (469 m a.s.l.)\nPAR during ER measures")
+#
+# abline(h=0, col="red")
+#
+#
+# ## same plot on ggplot2
+#
+# # PAR_wrong_duringER_plot <- co2_cut_60_keep %>%
+# #   filter(type=="ER") %>%
+# #   ggplot(aes(x = datetime,  y = PAR)) +
+# #   geom_point(alpha = 1/10, size = 2) +
+# #   geom_hline(
+# #     yintercept = 0, linetype = "dashed", colour = "red") +
+# #   scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
+# #   ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
+# #   theme(axis.ticks = element_line(size=1.5),
+# #         axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
+# #         axis.title = element_text(size = 14, color ="darkgrey"),
+# #         axis.title.x = element_blank(),
+# #         axis.line = element_line(color = "grey"),
+# #         axis.text = element_text(size = 12),
+# #         # legend.position = "none",
+# #         legend.text = element_text(size = 8),
+# #         legend.title = element_text(size = 8),
+# #         #legend.key.width= unit(0.4, 'cm'),
+# #         #panel.grid.major.x = element_blank(),
+# #         #panel.grid.major.y = element_blank(),
+# #         panel.grid.minor.x = element_blank(),
+# #         panel.grid.minor.y = element_blank(),
+# #         plot.title = element_text(size=16))
+# # panel.background = element_rect(
+# #  fill = 'white', colour = 'grey'))
+# PAR_wrong_duringER_plot
+#
+# # now we are replacing negative PAR values in type=ER by zero values.
+#
+# # co2_cut_60_keep <- co2_cut_60_keep %>%
+# #   mutate(
+# #     PAR =
+# #       case_when(
+# #         type=="ER" & PAR <= 0 ~ 0,
+# #         TRUE~PAR
+# #       )
+# #   )
+#
+# # let´s plot the PAR values for ER again:
+# # quick plot with base R
+#
+# filt_ER_60 <- filter(co2_cut_60_keep, type == "ER")
+#
+# plot(x= filt_ER_60$datetime, y= filt_ER_60$PAR) # Plot the PAR vs time
+# abline(h=0, col="red")
+#
+# # same plot with ggplot2
+#
+# PAR_right_duringER_plot <- co2_cut_60_keep %>%
+#   filter(type=="ER") %>%
+#   ggplot(aes(x = datetime,  y = PAR)) +
+#   geom_point(alpha = 1/10, size = 2) +
+#   geom_hline(
+#     yintercept = 0, linetype = "dashed", colour = "red") +
+#   scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
+#   ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
+#   theme(axis.ticks = element_line(size=1.5),
+#         axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
+#         axis.title = element_text(size = 14, color ="darkgrey"),
+#         axis.title.x = element_blank(),
+#         axis.line = element_line(color = "grey"),
+#         axis.text = element_text(size = 12),
+#         # legend.position = "none",
+#         legend.text = element_text(size = 8),
+#         legend.title = element_text(size = 8),
+#         #legend.key.width= unit(0.4, 'cm'),
+#         #panel.grid.major.x = element_blank(),
+#         #panel.grid.major.y = element_blank(),
+#         panel.grid.minor.x = element_blank(),
+#         panel.grid.minor.y = element_blank(),
+#         plot.title = element_text(size=16))
+# # panel.background = element_rect(
+# #  fill = 'white', colour = 'grey'))
+#
+# PAR_right_duringER_plot
+#
+#
+# #unique(filt_ER_60[filt_ER_60$PAR > 60,]$fluxID) # identify the weird values
+# #range(filt_ER_60[filt_ER_60$PAR > 60,]$PAR) # and the PAR levels (no big deal)
+# #unique(filt_ER_60[filt_ER_60$PAR > 60,]$datetime) # who was on the field at this time...
+#
+# #  NEE ---------------------------------
+#
+# # filt_NEE_60 <- filter(co2_cut_60_keep, type == "NEE") # I am just filtering to make things easier
+# #
+# # # quick plot with base R
+# # plot(filt_NEE_60$PAR) # Plot the PAR values
+# # plot(x= filt_NEE_60$datetime, y= filt_NEE_60$PAR,
+# #      xlab = "Time of the day (hours)",
+# #      ylab = "Photosynthetically active radiation (PAR)",
+# #      col = alpha("blue", 0.1), pch=16,
+# # ) # Plot the PAR vs time
+# # abline(h = 0, col="blue")
+# #
+# # # same plot with ggplot2
+# # PAR_wrong_duringNEE_plot <- co2_cut_60_keep %>%
+# #   filter(type=="NEE") %>%
+# #   ggplot(aes(x = datetime,  y = PAR)) +
+# #   geom_point(alpha = 1/10, size = 2) +
+# #   geom_hline(
+# #     yintercept = 0, linetype = "dashed", colour = "red") +
+# #   scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
+# #   ggtitle("Vikesland (469 m a.s.l.)\nEcosystem Respiration PAR values") +
+# #   theme(axis.ticks = element_line(size=1.5),
+# #         axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
+# #         axis.title = element_text(size = 14, color ="darkgrey"),
+# #         axis.title.x = element_blank(),
+# #         axis.line = element_line(color = "grey"),
+# #         axis.text = element_text(size = 12),
+# #         # legend.position = "none",
+# #         legend.text = element_text(size = 8),
+# #         legend.title = element_text(size = 8),
+# #         #legend.key.width= unit(0.4, 'cm'),
+# #         #panel.grid.major.x = element_blank(),
+# #         #panel.grid.major.y = element_blank(),
+# #         panel.grid.minor.x = element_blank(),
+# #         panel.grid.minor.y = element_blank(),
+# #         plot.title = element_text(size=16))
+# # # panel.background = element_rect(
+# # #  fill = 'white', colour = 'grey'))
+# #
+# # # Visualize individual PAR measures-----------------------------------------
+# #
+# # theme_set(theme_grey(base_size = 5))
+# #
+# # filt_NEE_60 %>%
+# #   ggplot(aes(x = datetime, y = PAR, colour = cut)) +
+# #   geom_point(size = 0.2, aes(group = fluxID)) +
+# #   # geom_line(size = 0.2) +
+# #   scale_x_datetime(date_breaks = "1 min", minor_breaks = "10 sec", date_labels = "%e/%m \n %H:%M") +
+# #   # scale_x_date(date_labels = "%H:%M:%S") +
+# #   facet_wrap(vars(fluxID), ncol = 30, scales = "free")
+# #
+# # # Replace negative and odd PAR values in type = NEE by NA values ------------
+# #
+# filter(co2_cut_keep, type == "ER") %>% #faster than looking at the graph!
+#   summarise(
+#     rangePAR = range(PAR)
+#   )
+#
+# filter(co2_cut_keep, type == "NEE") %>% #faster than looking at the graph!
+#   summarise(
+#     rangePAR = range(PAR, na.rm = TRUE)
+#   )
+#
+# co2_cut_keep %>%
+#   filter(
+#     type == "NEE"
+#     # & PAR < 10
+#   ) %>%
+#   mutate(
+#     datetime = ymd_hms(datetime),
+#     time = hms::as_hms(datetime)
+#   ) %>%
+#   ggplot(aes(x = time, y = PAR)) +
+#   geom_point() +
+#   geom_text(aes(label = fluxID))
+#
+# co2_cut_keep %>%
+#   mutate(
+#     fluxID = as.numeric(fluxID)
+#   ) %>%
+#   filter(
+#     fluxID %in% c(13)
+#   ) %>%
+#   mutate(
+#     datetime = ymd_hms(datetime),
+#     time = hms::as_hms(datetime)
+#   ) %>%
+#   ggplot(aes(x = time, y = PAR)) +
+#   geom_point() +
+#   facet_wrap(vars(fluxID), scales = "free")
+#
+# #negative PAR for ER should be 0
+# co2_cut_keep <- co2_cut_keep %>%
+#   mutate(
+#     PAR = case_when(
+#       type == "ER" & PAR < 0 ~ 0,
+#       TRUE ~ PAR
+#     )
+#   )
+#
+# co2_cut_keep <- co2_cut_keep %>%
+#   mutate(
+#     fluxID = as.numeric(fluxID),
+#     PAR =
+#       case_when(
+#         # fluxID == 195
+#         # | fluxID == 143
+#         # | fluxID == 153
+#         # | fluxID == 155
+#         # | fluxID == 177
+#         # | fluxID == 179
+#         # | fluxID == 31
+#         # | fluxID ==
+#         fluxID %in% c(195, 143, 153, 155, 177, 179, 31, 118, 148)
+#         | (fluxID %in% c(29, 57, 27, 35, 41, 67, 15, 25, 157, 17, 11, 37, 13) & PAR < 0)
+#         | (fluxID == 161 & PAR < 50)
+#         ~ NA_real_,
+#         TRUE ~ PAR
+#       )
+#   )
+#
+# # # quick plot with base R ---------------------------------------
+# # filt_NEE_60 <- filter(co2_cut_60_keep, type == "NEE") # I am just filtering to make things easier
+# # plot(filt_NEE_60$PAR) # Plot the PAR values
+# # plot(x= filt_NEE_60$datetime, y= filt_NEE_60$PAR,
+# #      xlab = "Time of the day (hours)",
+# #      ylab = "Photosynthetically active radiation (PAR)",
+# #      col = alpha("blue", 0.1), pch=16,
+# # ) # Plot the PAR vs time
+# #
+# # abline(h = 0, col="blue")
+# # ############################################################################3
+# #
+# # # same plot with ggplot2 -----------------------------------
+# # PAR_right_duringNEE_plot <- co2_cut_60_keep %>%
+# #   filter(type=="NEE") %>%
+# #   ggplot(aes(x = datetime,  y = PAR)) +
+# #   geom_point(alpha = 1/10, size = 2) +
+# #   geom_hline(
+# #     yintercept = 0, linetype = "dashed", colour = "red") +
+# #   scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%b %d - %H:%M")) +
+# #   ggtitle("Vikesland (469 m a.s.l.)\nPAR values over 24 h") +
+# #   theme(axis.ticks = element_line(size=1.5),
+# #         axis.text.x = element_text(angle = 20, vjust = 0.8, hjust=0.8),
+# #         axis.title = element_text(size = 14, color ="darkgrey"),
+# #         axis.title.x = element_blank(),
+# #         axis.line = element_line(color = "grey"),
+# #         axis.text = element_text(size = 12),
+# #         # legend.position = "none",
+# #         legend.text = element_text(size = 8),
+# #         legend.title = element_text(size = 8),
+# #         #legend.key.width= unit(0.4, 'cm'),
+# #         #panel.grid.major.x = element_blank(),
+# #         #panel.grid.major.y = element_blank(),
+# #         panel.grid.minor.x = element_blank(),
+# #         panel.grid.minor.y = element_blank(),
+# #         plot.title = element_text(size=16))
+# # # panel.background = element_rect(
+# # #  fill = 'white', colour = 'grey'))
+#
+#
+# # Discussion with students in the class  ----------------------------------
+#
+# # ... what should we do now??
+# # 1. think about weird PAR values. what could be happening, and how to solve it? (Discuss in class)
+#
+# # 2. we should also manually modify the cuts for those curve that does not look fine with the automatic cuts.
+#
+#
+# # calculation of fluxes ---------------------------------------------------
+#
+# cflux_vikesland <- co2_cut_keep %>%
+#   flux.calc.PFTC6()
+#
+# # pvalue and R2 rule ------------------------------------------------------
+# p = 0.01
+# R2 = 0.7
+#
+# cflux_vikesland_clean <- cflux_vikesland %>%
+#   mutate(
+#     flux = case_when(
+#       "p.value" > p  & adj.r.squared < R2 & type == "NEE" ~ 0,
+#       "p.value" > p  & adj.r.squared < R2 & type == "ER" ~ NA_real_,
+#       "p.value" <= p & "adj.r.squared" < R2 ~ NA_real_,
+#       "p.value" > p & "adj.r.squared" >= R2 ~ flux,
+#       "p.value" <= p & "adj.r.squared" >= R2 ~ flux
+#       # , TRUE ~ flux
+#     ))
+#
+# cflux_vikesland_GPP <- GPP.PFTC6(cflux_vikesland)
+# cflux_vikesland_GPP_clean <- GPP.PFTC6(cflux_vikesland_clean)
+#
+# # cflux_vikesland_GPP_clean %>%
+# #   filter(type == "GPP") %>%
+# #   count(
+# #     flux > 0
+# #   )
+#
+#
+# # verifying data ----------------------------------------------------------
+#
+# # cflux_vikesland_GPP %>%
+# #   filter(
+# #     type != "NEE"
+# #   ) %>%
+# #   ggplot(aes(x = datetime, y = flux, color = type)) +
+# #   geom_point() +
+# #   # geom_text(aes(label = turfID)) +
+# #   scale_x_datetime(date_breaks = "2 hours", minor_breaks = "30 min", date_labels = "%e/%m \n %H:%M")
+#
+# # cflux_vikesland_GPP_clean %>%
+# #   # filter(
+# #   #   type != "NEE"
+# #   # ) %>%
+# #   ggplot(aes(x = datetime, y = flux, color = type)) +
+# #   geom_point() +
+# #   # geom_text(aes(label = turfID)) +
+# #   scale_x_datetime(date_breaks = "2 hours", minor_breaks = "30 min", date_labels = "%e/%m \n %H:%M")
+#
+#
+# # calculating GPP ---------------------------------------------------------
+#
+# # cflux_vikesland_GPP <- cflux_vikesland %>%
+# #   mutate(
+# #     pairID = case_when(
+# #       type == "NEE" ~ fluxID,
+# #       type == "ER" ~ fluxID-1
+# #     ),   # problem with datetime, it is different between ER and NEE. Let's use datetime NEE
+# #     # datetime = case_when(
+# #     #   type == "NEE" ~ datetime,
+# #     #   type == "ER" ~ NA_real_
+# #     # ),
+# #     turfID = as_factor(turfID),
+# #     type = as_factor(type)
+# #   ) %>%
+# #   select(!c(fluxID)) %>%
+# #   # pivot_wider(names_from = type, values_from = PARavg, names_prefix = "PARavg_") %>%
+# #   # select(!c(PAR_corrected_flux)) %>%
+# #   # select(campaign, turfID, date, type, corrected_flux) %>%
+# #   pivot_wider(names_from = type, values_from = c(flux, temp_soilavg, datetime, PARavg)) %>%
+# #
+# #   # pivot_wider(names_from = type, values_from = c(flux, temp_soilavg)) %>%
+# #   rename(
+# #     ER = flux_ER,
+# #     NEE = flux_NEE
+# #   ) %>%
+# #   mutate(
+# #     GEP = NEE - ER
+# #   ) %>%
+# #   pivot_longer(c(ER, NEE, GEP), names_to = "type", values_to = "flux") %>%
+# #   mutate(
+# #     temp_soil = case_when(
+# #       type == "ER" ~ temp_soilavg_ER,
+# #       type == "NEE" ~ temp_soilavg_NEE,
+# #       type == "GEP" ~ rowMeans(select(., c(temp_soilavg_NEE, temp_soilavg_ER)), na.rm = TRUE)
+# #     ),
+# #     PARavg = case_when(
+# #       type == "ER" ~ PARavg_ER,
+# #       type == "NEE" ~ PARavg_NEE,
+# #       type == "GEP" ~ PARavg_NEE
+# #       ),
+# #     datetime = case_when(
+# #       type == "ER" ~ datetime_ER,
+# #       type == "NEE" ~ datetime_NEE,
+# #       type == "GEP" ~ datetime_NEE
+# #     )
+# #   ) %>%
+# #   select(!c(temp_soilavg_ER, temp_soilavg_NEE, PARavg_ER, PARavg_NEE, datetime_ER, datetime_NEE))
+#
+#
+# # cflux_vikesland <- GPP.PFTC6(cflux_vikesland)
+# #
+# # # remove negative ER values (no sense)
+# # cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="ER" & cflux_vikesland$flux <0),]
+# #
+# # # remove negative ER values (no sense)
+# # cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="GEP" & cflux_vikesland$flux < -200),]
+# #
+# # cflux_vikesland <- cflux_vikesland[!(cflux_vikesland$type=="GEP" & cflux_vikesland$flux > 100),]
+#
+# cflux_vikesland_corrected <- GPP_corr.PFTC6(cflux_vikesland_GPP_clean,
+#                                           start_night = "22:50:00",
+#                                           end_night = "04:00:00",
+#                                           strategy = "max")
+#
+# cflux_vikesland_corrected %>%
+#   filter(
+#     type != "NEE"
+#   ) %>%
+#   ggplot(aes(x = time, y = flux_corrected, color = type)) +
+#   geom_point()
+#   geom_point(size = 0.01) +
+#   geom_text(aes(label = turfID))
+#
+# write_csv(cflux_vikesland_corrected, "clean_data/PFTC6_24h-cflux_vikesland_2022.csv")
+#
+#
