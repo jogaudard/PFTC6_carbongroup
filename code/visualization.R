@@ -10,21 +10,21 @@ my_packages <- c("dataDownloader",
 lapply(my_packages, library, character.only = TRUE) 
 
 get_file(node = "fcbw4",
-         file = "PFTC6_24h_cflux_allsites_2022.csv",
+         file = "PFTC6_clean_cflux_2022.csv",
          path = "clean_data",
          remote_path = "v. c_flux_data")
 
 get_file(node = "fcbw4",
-         file = "PFTC6_microclimate_allsites_2022.csv",
+         file = "PFTC6_microclimate_2022.csv",
          path = "clean_data",
          remote_path = "vii. microclimate")
 
-fluxes <- read_csv("clean_data/PFTC6_24h_cflux_2022.csv")
+
+
+fluxes <- read_csv("clean_data/PFTC6_clean_cflux_2022.csv")
 
 microclimate <- read_csv("clean_data/PFTC6_microclimate_2022.csv") %>% 
   mutate(
-    # site = str_to_lower(site),
-    # site = as_factor(site)
     destSiteID = as_factor(destSiteID)
   )
 
@@ -60,7 +60,6 @@ fluxes <- fluxes %>%
   fill(updown, .direction = "updown") %>%
   rowwise() %>%
   mutate(
-    # mean = mean(c(downup, updown))
     flux_corrected = replace_na(flux_corrected, mean(c(downup, updown)))
   ) %>%
   select(!c(downup, updown))
@@ -77,14 +76,11 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
       type == "ER" ~ NA_real_ #because we want to show the ambient PAR, we get rid of the ER ones (measured inside the dark chamber)
     ),
     type = case_when(
-      is.na(type) ~ sensor, #include the microclimate sensor in the type column
+      is.na(type) ~ climate_variable, #include the microclimate sensor in the type column
+
       TRUE ~ type
     )
-    # site = str_to_lower(site)
   ) %>%
-  # filter(
-  #   type != "NEE" #just in case we are not interested in NEE
-  # ) %>% 
   select(type, PAR, datetime, destSiteID, value, turfID) %>% 
   rowid_to_column("rowID") %>% #makes each rows unique, helps with pivot wider
   pivot_wider(names_from = "type", values_from = "value") %>% #just a trick to get all the value in the same column (PAR has its own column)
@@ -94,7 +90,7 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
     name = as_factor(name),
     time = as_hms(datetime),
     name = factor(name, levels = c("air_temperature", "ground_temperature", "soil_temperature", "soil_moisture", "PAR", "ER", "NEE", "GPP")), # we need to make sure everything is in the same order
-    destSiteID = factor(destSiteID, levels = c("Vik", "Hog", "Joa", "Lia"))
+    destSiteID = factor(destSiteID, levels = c("Vikesland", "Hogsete", "Joasete", "Liahovden"))
   )
 
 # diurnal and density together (the figure for the datapaper) --------------------------------------------
@@ -102,7 +98,7 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
 # to have the vertical lines showing when fluxes started
 
 fluxstarttimes <- tibble(
-  site = factor(c("Vik", "Hog", "Joa", "Lia")),
+  site = factor(c("Vikesland", "Hogsete", "Joasete", "Liahovden")),
   starttime = c("21:10", "22:30", "07:00", "05:20")
 )
 
@@ -133,7 +129,6 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
   
   diurnal_fluxes <- data_long %>% 
     filter(
-      # name != "NEE" # in case we are not intersted in NEE
       name %in% c("ER", "GPP", "NEE")
     ) %>%
     ggplot(aes(time, value, color=destSiteID)) +
@@ -177,9 +172,6 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
       x= "Time"
     ) +
     theme(legend.position="none",
-          # axis.title.x = element_blank(),
-          # axis.text.x=element_blank(),
-          # axis.ticks.x=element_blank(),
           text=element_text(size=font_size)
     )
   
@@ -195,23 +187,23 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     geom_jitter() +
     scale_fill_viridis(discrete=T, labels = c( #this is the plot providing the legend to the patchwork
-      Hog = "700",
-      Joa = "920",
-      Lia = "1290",
-      Vik = "469"
+      Hogsete = "700",
+      Joasete = "920",
+      Liahovden = "1290",
+      Vikesland = "469"
     )) +
     scale_color_viridis(discrete=T, labels = c(
-      Hog = "700",
-      Joa = "920",
-      Lia = "1290",
-      Vik = "469"
+      Hogsete = "700",
+      Joasete = "920",
+      Liahovden = "1290",
+      Vikesland = "469"
     )) +
     scale_y_continuous(position = "right") +
     scale_x_discrete(labels = c(
-      Hog = "700m",
-      Joa = "920m",
-      Lia = "1290m",
-      Vik = "469m"
+      Hogsete = "700m",
+      Joasete = "920m",
+      Liahovden = "1290m",
+      Vikesland = "469m"
     )) +
     labs(
       y="Cumulative fluxes (mmol/sqm)",
@@ -223,7 +215,6 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
     theme(
       strip.text.x = element_blank(),
       axis.title.x = element_blank(),
-      # axis.text.x=element_blank(),
       axis.ticks.x=element_blank(),
       text=element_text(size=font_size),
       legend.position = "bottom"
@@ -250,9 +241,4 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
 plots_making(data_long, fluxstarttimes, 11)
 ggsave("PFTC6datapaper_figure.svg", width = 3508, height = 2480, units = "px", dpi = 300)
 ggsave("PFTC6datapaper_figure.jpg", width = 3508, height = 2480, units = "px", dpi = 300)
-
-
-
-
-
 
