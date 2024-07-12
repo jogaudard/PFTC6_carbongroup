@@ -8,7 +8,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# source("code/data_dic/data_dictionnary.R")
+# source("R_code/data_dic/create_data_dictionary.R")
 ```
 
 # Introduction
