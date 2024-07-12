@@ -11,9 +11,9 @@ cflux <- read_csv("clean_data/PFTC6_clean_cflux_2022.csv")
 
 # Microclimate data ----
 get_file(node = "fcbw4",
-         file = "PFTC6_clean_microclimate_2022.csv",
+         file = "PFTC6_microclimate_2022.csv",
          path = "clean_data",
-         remote_path = "vii. microclimate_data")
+         remote_path = "vii. microclimate")
 
-microclimate <- read_csv("clean_data/PFTC6_clean_microclimate_2022.csv") |>
+microclimate <- read_csv("clean_data/PFTC6_microclimate_2022.csv") |>
   mutate(loggerID = as.numeric(loggerID))
