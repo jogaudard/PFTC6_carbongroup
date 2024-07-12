@@ -130,13 +130,15 @@ microclimate.clean = microclimate %>%
       # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
       TRUE ~ "keep"
     )) |>
-  # Replace flagged values with NA
-  rename(value_original = value, climate_variable = sensor) |>
-  mutate(value = case_when(
-    flag != "keep" ~ NA,
-    TRUE ~ value_original
-  )) |>
-  select(datetime, loggerID, turfID, destSiteID, climate_variable, value_original, value, flag, datetime_in, datetime_out)
+  # # Replace flagged values with NA
+  # rename(value_original = value, climate_variable = sensor) |>
+  # mutate(value = case_when(
+  #   flag != "keep" ~ NA,
+  #   TRUE ~ value_original
+  # )) |>
+  rename(climate_variable = sensor) |>
+  select(datetime, loggerID, turfID, destSiteID, climate_variable,
+         value, flag, datetime_in, datetime_out)
 
 # Adding Three-D data -----------------------------------------------------
 threeD_microclimate_all <- read_csv("raw_data/microclimate/THREE-D_clean_microclimate_2019-2022.csv")
@@ -179,19 +181,21 @@ threeD_microclimate <- threeD_microclimate_all %>%
       # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
       TRUE ~ "keep"
     )) |>
-  # Replace flagged values with NA
-  rename(value_original = value, climate_variable = sensor) |>
-  mutate(value = case_when(
-    flag != "keep" ~ NA,
-    TRUE ~ value_original
-  )) |>
-  select(datetime, loggerID, turfID, destSiteID, datetime_in, datetime_out, climate_variable, value_original, value, flag)
+  # # Replace flagged values with NA
+  # rename(value_original = value, climate_variable = sensor) |>
+  # mutate(value = case_when(
+  #   flag != "keep" ~ NA,
+  #   TRUE ~ value_original
+  # )) |>
+  rename(climate_variable = sensor) |>
+  select(datetime, loggerID, turfID, destSiteID, datetime_in, datetime_out,
+         climate_variable, value, flag)
 
 microclimate.export <- microclimate.clean %>%
   bind_rows(threeD_microclimate) %>%
   left_join(metaturf) |>
   relocate(datetime, loggerID, turfID, origSiteID, destSiteID, turfID, loggerID, warming, datetime_in, datetime_out,
-           climate_variable, value_original, value, flag)
+           climate_variable, value, flag)
 
 write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
 
