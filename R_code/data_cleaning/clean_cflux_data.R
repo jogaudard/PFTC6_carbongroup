@@ -77,10 +77,10 @@ missing_rounds <- bind_rows(missing_joa, missing_lia) %>%
 # we put them into the flux dataset
 cflux_all_clean <- cflux_all_clean %>%
   bind_rows(missing_rounds) |>
-  # Make a column for the clean dataset that includes both flagged data and corrected data
-  mutate(flux_value = coalesce(flux_corrected, flux_noflag)) |>
+  # Rename column with relevant flux values
+  rename(flux_value = flux_corrected) |>
   # Remove data columns that aren't in the clean dataset
-  select(-c(flux, flux_noflag, flux_corrected)) |>
+  select(-c(flux, flux_noflag)) |>
   # Reorganise data
   relocate(datetime, time, origSiteID, destSiteID, turfID, warming, type, fluxID, flux_value, PARavg,
            temp_soil, temp_airavg, flag)

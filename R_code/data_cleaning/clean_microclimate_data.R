@@ -130,13 +130,12 @@ microclimate.clean = microclimate %>%
       # sensor == "soil_moisture" & value > 0.5 ~ "cut_max_moist"
       TRUE ~ "keep"
     )) |>
-  # # Replace flagged values with NA
-  # rename(value_original = value, climate_variable = sensor) |>
-  # mutate(value = case_when(
-  #   flag != "keep" ~ NA,
-  #   TRUE ~ value_original
-  # )) |>
+  # Replace flagged values with NA
   rename(climate_variable = sensor) |>
+  mutate(value = case_when(
+    flag != "keep" ~ NA,
+    TRUE ~ value
+  )) |>
   select(datetime, loggerID, turfID, destSiteID, climate_variable,
          value, flag, datetime_in, datetime_out)
 
@@ -182,12 +181,11 @@ threeD_microclimate <- threeD_microclimate_all %>%
       TRUE ~ "keep"
     )) |>
   # # Replace flagged values with NA
-  # rename(value_original = value, climate_variable = sensor) |>
-  # mutate(value = case_when(
-  #   flag != "keep" ~ NA,
-  #   TRUE ~ value_original
-  # )) |>
   rename(climate_variable = sensor) |>
+  mutate(value = case_when(
+    flag != "keep" ~ NA,
+    TRUE ~ value
+  )) |>
   select(datetime, loggerID, turfID, destSiteID, datetime_in, datetime_out,
          climate_variable, value, flag)
 
