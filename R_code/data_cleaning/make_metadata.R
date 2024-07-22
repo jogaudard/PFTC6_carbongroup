@@ -18,7 +18,7 @@ metaturf <- read_csv("raw_data/Three-D_metaturfID.csv") %>%
   mutate(
     origSiteID = str_replace_all(
       origSiteID,
-      c("Lia" = "Liahovden" , "Joa" = "Hogsete", "Vik" = "Vikesland")
+      c("Lia" = "Liahovden" , "Joa" = "Joasete", "Vik" = "Vikesland")
     ),
     destSiteID = str_replace_all(
       destSiteID,
