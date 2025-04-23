@@ -10,20 +10,20 @@ my_packages <- c("dataDownloader",
 lapply(my_packages, library, character.only = TRUE) 
 
 get_file(node = "fcbw4",
-         file = "PFTC6_clean_cflux_2022.csv",
+         file = "PFTC6_clean_GlobalChangeExperiment_cflux_2022.csv",
          path = "clean_data",
          remote_path = "v. c_flux_data")
 
 get_file(node = "fcbw4",
-         file = "PFTC6_microclimate_2022.csv",
+         file = "PFTC6_clean_GlobalChangeExperiment_microclimate_2022.csv",
          path = "clean_data",
          remote_path = "vii. microclimate")
 
 
 
-fluxes <- read_csv("clean_data/PFTC6_clean_cflux_2022.csv")
+fluxes <- read_csv("clean_data/PFTC6_clean_GlobalChangeExperiment_cflux_2022.csv")
 
-microclimate <- read_csv("clean_data/PFTC6_microclimate_2022.csv") %>% 
+microclimate <- read_csv("clean_data/PFTC6_clean_GlobalChangeExperiment_microclimate_2022.csv") %>% 
   mutate(
     destSiteID = as_factor(destSiteID)
   )
@@ -54,13 +54,13 @@ fluxes <- fluxes %>%
   group_by(turfID, type) %>%
   arrange(datetime) %>% # just to be sure
   # Hacking tidyverse to take means of rows above and below
-  mutate(downup = flux_corrected,
-         updown = flux_corrected)  %>%
+  mutate(downup = flux_value,
+         updown = flux_value)  %>%
   fill(downup, .direction = "downup") %>%
   fill(updown, .direction = "updown") %>%
   rowwise() %>%
   mutate(
-    flux_corrected = replace_na(flux_corrected, mean(c(downup, updown)))
+    flux_value = replace_na(flux_value, mean(c(downup, updown)))
   ) %>%
   select(!c(downup, updown))
   
@@ -69,7 +69,7 @@ fluxes <- fluxes %>%
 # arranging the data ------------------------------------------------------
 
 # first we need to arrange the data in a weirdly mixed long format, microclimate and fluxes together
-data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_corrected", "destSiteID", "turfID")) %>%
+data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_value", "destSiteID", "turfID")) %>%
   mutate(
     PAR = case_when(
       type == "GPP" ~ PARavg,
@@ -239,6 +239,6 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
 
 
 plots_making(data_long, fluxstarttimes, 11)
-ggsave("PFTC6datapaper_figure.svg", width = 3508, height = 2480, units = "px", dpi = 300)
-ggsave("PFTC6datapaper_figure.jpg", width = 3508, height = 2480, units = "px", dpi = 300)
+ggsave("PFTC6datapaper_figure_resubmission.svg", width = 3508, height = 2480, units = "px", dpi = 300)
+# ggsave("PFTC6datapaper_figure.jpg", width = 3508, height = 2480, units = "px", dpi = 300)
 
