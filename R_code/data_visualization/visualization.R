@@ -7,6 +7,7 @@ my_packages <- c("dataDownloader",
                  "hms"
 )
 
+
 lapply(my_packages, library, character.only = TRUE) 
 
 get_file(node = "fcbw4",
@@ -41,6 +42,7 @@ fluxes_startstop <- fluxes %>%
 
 microclimate <- microclimate %>% 
   left_join(fluxes_startstop, by = "destSiteID") %>% 
+
   filter(
     datetime <= stop
     & datetime >= start
@@ -63,9 +65,7 @@ fluxes <- fluxes %>%
     flux_value = replace_na(flux_value, mean(c(downup, updown)))
   ) %>%
   select(!c(downup, updown))
-  
-  
-  
+
 # arranging the data ------------------------------------------------------
 
 # first we need to arrange the data in a weirdly mixed long format, microclimate and fluxes together
@@ -85,6 +85,7 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
   rowid_to_column("rowID") %>% #makes each rows unique, helps with pivot wider
   pivot_wider(names_from = "type", values_from = "value") %>% #just a trick to get all the value in the same column (PAR has its own column)
   pivot_longer(cols = c(PAR, GPP, ER, NEE, air_temperature, soil_temperature, ground_temperature, soil_moisture)) %>% 
+
   drop_na(value) %>% #because of the two pivots we created a lot of empty useless rows
   mutate( #making things easier to make graphs later
     name = as_factor(name),
@@ -148,6 +149,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
     geom_point(size=0.05) +
     geom_vline(data = fluxstarttimes, 
                aes(xintercept = lubridate::hm(starttime), color = site), linetype = 5, linewidth = 0.7) +
+
     geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~., scales = "free") +
     scale_color_viridis(discrete=T) +
@@ -162,6 +164,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
   
   
   diurnal_microclimate <- data_long %>% 
+
     filter(
       name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
     ) %>%
@@ -198,6 +201,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
     summarise(
       cumul_flux = sum(value) # we sum each fluxes for each turfID
     ) %>% 
+
     ggplot(aes(y = cumul_flux, x = destSiteID, fill = destSiteID, color = destSiteID)) +
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     geom_jitter() +
@@ -231,6 +235,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
       # switch = "y"
       ) +
     # facet_wrap(~name, scales = "free", ncol = 1) +
+
     theme_bw() +
     theme(
       strip.text.x = element_blank(),
@@ -239,7 +244,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
       text=element_text(size=font_size),
       legend.position = "bottom"
     )
-  
+
   patchwork <- diurnal_fluxes + fluxes_cumul + diurnal_microclimate + density_microclimate + guide_area() +
     plot_layout(guides = "collect",
                 design = "
@@ -253,7 +258,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
                 heights = c(3, 5, 0.1) #this ratio makes sure all the diurnals have the same heigt
     ) +
     plot_annotation(tag_levels = 'a')
-  
+
   return(patchwork)
 }
 
@@ -261,4 +266,5 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
 plots_making(data_long, fluxstarttimes, 10)
 ggsave("PFTC6datapaper_figure_resubmission.svg", width = 3508, height = 2700, units = "px", dpi = 300)
 ggsave("PFTC6datapaper_figure_resubmission.jpg", width = 3508, height = 2700, units = "px", dpi = 300)
+
 
