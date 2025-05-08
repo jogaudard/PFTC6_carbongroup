@@ -203,20 +203,20 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
     geom_jitter() +
     scale_fill_viridis(discrete=T, labels = c( #this is the plot providing the legend to the patchwork
       Hogsete = "Noth boreal",
-      Joasete = "Subalpine",
+      Joasete = "Sub-alpine",
       Liahovden = "Alpine",
       Vikesland = "Boreal"
     )) +
     scale_color_viridis(discrete=T, labels = c(
       Hogsete = "Noth boreal",
-      Joasete = "Subalpine",
+      Joasete = "Sub-alpine",
       Liahovden = "Alpine",
       Vikesland = "Boreal"
     )) +
     scale_y_continuous(position = "left") +
     scale_x_discrete(labels = c(
       Hogsete = "Noth boreal",
-      Joasete = "Subalpine",
+      Joasete = "Sub-alpine",
       Liahovden = "Alpine",
       Vikesland = "Boreal"
     )) +
