@@ -5,6 +5,8 @@ Joseph Gaudard
 
 <!-- This file is compiled with rmarkdown::render in R_code/data_dic/create_data_dictionary.R", do not knit here -->
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15365537.svg)](https://doi.org/10.5281/zenodo.15365537)
+
 # Introduction
 
 We study how trait composition influences ecosystem functioning by
