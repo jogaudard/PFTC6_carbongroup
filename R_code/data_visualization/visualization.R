@@ -7,40 +7,42 @@ my_packages <- c("dataDownloader",
                  "hms"
 )
 
-lapply(my_packages, library, character.only = TRUE)
+
+lapply(my_packages, library, character.only = TRUE) 
 
 get_file(node = "fcbw4",
-         file = "PFTC6_cflux_2022.csv",
+         file = "PFTC6_clean_GlobalChangeExperiment_cflux_2022.csv",
          path = "clean_data",
          remote_path = "v. c_flux_data")
 
 get_file(node = "fcbw4",
-         file = "PFTC6_microclimate_2022.csv",
+         file = "PFTC6_clean_GlobalChangeExperiment_microclimate_2022.csv",
          path = "clean_data",
          remote_path = "vii. microclimate")
 
 
 
-fluxes <- read_csv("clean_data/PFTC6_cflux_2022.csv")
+fluxes <- read_csv("clean_data/PFTC6_clean_GlobalChangeExperiment_cflux_2022.csv")
 
-microclimate <- read_csv("clean_data/PFTC6_microclimate_2022.csv") %>%
+microclimate <- read_csv("clean_data/PFTC6_clean_GlobalChangeExperiment_microclimate_2022.csv") %>% 
   mutate(
     destSiteID = as_factor(destSiteID)
   )
 
 # need to cut microclimate so we match the time window of the fluxes
 
-fluxes_startstop <- fluxes %>%
-  group_by(destSiteID) %>%
+fluxes_startstop <- fluxes %>% 
+  group_by(destSiteID) %>% 
   mutate(
     start = min(datetime),
     stop = max(datetime)
-  ) %>%
-  select(destSiteID, start, stop) %>%
+  ) %>% 
+  select(destSiteID, start, stop) %>% 
   unique()
 
-microclimate <- microclimate %>%
-  left_join(fluxes_startstop, by = "destSiteID") %>%
+microclimate <- microclimate %>% 
+  left_join(fluxes_startstop, by = "destSiteID") %>% 
+
   filter(
     datetime <= stop
     & datetime >= start
@@ -60,11 +62,9 @@ fluxes <- fluxes %>%
   fill(updown, .direction = "updown") %>%
   rowwise() %>%
   mutate(
-    flux_corrected = replace_na(flux_value, mean(c(downup, updown)))
+    flux_value = replace_na(flux_value, mean(c(downup, updown)))
   ) %>%
   select(!c(downup, updown))
-
-
 
 # arranging the data ------------------------------------------------------
 
@@ -81,10 +81,11 @@ data_long <- full_join(microclimate, fluxes, by = c("datetime", "value" = "flux_
       TRUE ~ type
     )
   ) %>%
-  select(type, PAR, datetime, destSiteID, value, turfID) %>%
+  select(type, PAR, datetime, destSiteID, value, turfID) %>% 
   rowid_to_column("rowID") %>% #makes each rows unique, helps with pivot wider
   pivot_wider(names_from = "type", values_from = "value") %>% #just a trick to get all the value in the same column (PAR has its own column)
-  pivot_longer(cols = c(PAR, GPP, ER, NEE, air_temperature, soil_temperature, ground_temperature, soil_moisture)) %>%
+  pivot_longer(cols = c(PAR, GPP, ER, NEE, air_temperature, soil_temperature, ground_temperature, soil_moisture)) %>% 
+
   drop_na(value) %>% #because of the two pivots we created a lot of empty useless rows
   mutate( #making things easier to make graphs later
     name = as_factor(name),
@@ -106,35 +107,49 @@ fluxstarttimes <- tibble(
 # Aud's idea to "save time" (haha):
 # put everything in a function, that way we can re generate the graphs all together when we change something
 # edit: it was actually fast and it is super practical
-plots_making <- function(data_long, fluxstarttimes, font_size)
-{
-  density_microclimate <- data_long %>%
+plots_making <- function(data_long, fluxstarttimes, font_size) {
+  density_microclimate <- data_long %>% 
     filter( #we just want microclimate
       name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
-    ) %>%
+    ) %>% 
     ggplot(aes(x=value, fill=destSiteID)) +
     geom_density(alpha=0.6, linewidth = 0.8) +
     scale_fill_viridis(discrete=T) +
-    scale_y_continuous(position = "right") +
-    facet_wrap(name~.,labeller = label_parsed, scales="free", ncol = 1) +
+    scale_y_continuous(position = "left") +
+    # facet_wrap(name~.,
+    # labeller = label_parsed, 
+    # scales="free", ncol = 1) +
+    facet_wrap(name ~ .,
+               scales = "free",
+               labeller = as_labeller(c(
+                 air_temperature = "Air T°",
+                 ground_temperature = "Ground T°",
+                 soil_temperature = "Soil T°",
+                 soil_moisture = "Soil moisture",
+                 PAR = "PAR"
+               )),
+               ncol = 1,
+               strip.position = "right"
+    ) +
     labs(
       y="Density",
       x= "Microclimate value"
     ) +
     theme_bw() +
     theme(legend.position="none",
-          strip.text.x = element_blank(),
+          # strip.text.x = element_blank(),
           text=element_text(size=font_size)
     )
-
-  diurnal_fluxes <- data_long %>%
+  
+  diurnal_fluxes <- data_long %>% 
     filter(
       name %in% c("ER", "GPP", "NEE")
     ) %>%
     ggplot(aes(time, value, color=destSiteID)) +
     geom_point(size=0.05) +
-    geom_vline(data = fluxstarttimes,
-               aes(xintercept = lubridate::hm(starttime), color = site), linetype = "dotted") +
+    geom_vline(data = fluxstarttimes, 
+               aes(xintercept = lubridate::hm(starttime), color = site), linetype = 5, linewidth = 0.7) +
+
     geom_smooth(method = "loess", span = 0.3) +
     facet_grid(name~., scales = "free") +
     scale_color_viridis(discrete=T) +
@@ -146,15 +161,18 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
       y="Fluxes (mmol/sqm/h)",
       x= "Time"
     )
+  
+  
+  diurnal_microclimate <- data_long %>% 
 
-
-  diurnal_microclimate <- data_long %>%
     filter(
       name %in% c("air_temperature", "ground_temperature", "soil_moisture", "soil_temperature", "PAR")
     ) %>%
     ggplot(aes(time, value, color=destSiteID)) +
     geom_point(size=0.05) +
     geom_smooth(method = "loess", span = 0.3) +
+    geom_vline(data = fluxstarttimes, 
+               aes(xintercept = lubridate::hm(starttime), color = site), linetype = 5, linewidth = 0.7) +
     facet_grid(name~.,
                scales = "free",
                labeller = labeller(name = c(
@@ -174,43 +192,50 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
     theme(legend.position="none",
           text=element_text(size=font_size)
     )
-
-  fluxes_cumul <- data_long %>%
+  
+  fluxes_cumul <- data_long %>% 
     filter(
       name %in% c("ER", "GPP", "NEE")
-    ) %>%
-    group_by(destSiteID, name, turfID) %>%
+    ) %>% 
+    group_by(destSiteID, name, turfID) %>% 
     summarise(
       cumul_flux = sum(value) # we sum each fluxes for each turfID
-    ) %>%
+    ) %>% 
+
     ggplot(aes(y = cumul_flux, x = destSiteID, fill = destSiteID, color = destSiteID)) +
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     geom_jitter() +
     scale_fill_viridis(discrete=T, labels = c( #this is the plot providing the legend to the patchwork
-      Hogsete = "700",
-      Joasete = "920",
-      Liahovden = "1290",
-      Vikesland = "469"
+      Hogsete = "Noth boreal",
+      Joasete = "Sub-alpine",
+      Liahovden = "Alpine",
+      Vikesland = "Boreal"
     )) +
     scale_color_viridis(discrete=T, labels = c(
-      Hogsete = "700",
-      Joasete = "920",
-      Liahovden = "1290",
-      Vikesland = "469"
+      Hogsete = "Noth boreal",
+      Joasete = "Sub-alpine",
+      Liahovden = "Alpine",
+      Vikesland = "Boreal"
     )) +
-    scale_y_continuous(position = "right") +
+    scale_y_continuous(position = "left") +
     scale_x_discrete(labels = c(
-      Hogsete = "700m",
-      Joasete = "920m",
-      Liahovden = "1290m",
-      Vikesland = "469m"
+      Hogsete = "Noth boreal",
+      Joasete = "Sub-alpine",
+      Liahovden = "Alpine",
+      Vikesland = "Boreal"
     )) +
     labs(
       y="Cumulative fluxes (mmol/sqm)",
-      fill = "Elevation (m)",
-      color = "Elevation (m)"
+      fill = "Elevation Gradient sites",
+      color = "Elevation Gradient sites"
     ) +
-    facet_wrap(~name, scales = "free", ncol = 1) +
+    facet_grid(
+      name~.,
+      scales = "free"
+      # switch = "y"
+      ) +
+    # facet_wrap(~name, scales = "free", ncol = 1) +
+
     theme_bw() +
     theme(
       strip.text.x = element_blank(),
@@ -238,7 +263,8 @@ plots_making <- function(data_long, fluxstarttimes, font_size)
 }
 
 
-plots_making(data_long, fluxstarttimes, 11)
-ggsave("PFTC6datapaper_figure.svg", width = 3508, height = 2480, units = "px", dpi = 300)
-ggsave("PFTC6datapaper_figure.jpg", width = 3508, height = 2480, units = "px", dpi = 300)
+plots_making(data_long, fluxstarttimes, 10)
+ggsave("PFTC6datapaper_figure_resubmission.svg", width = 3508, height = 2700, units = "px", dpi = 300)
+ggsave("PFTC6datapaper_figure_resubmission.jpg", width = 3508, height = 2700, units = "px", dpi = 300)
+
 
