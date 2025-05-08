@@ -1,6 +1,6 @@
 ---
 title: "Readme"
-author: "Joseph Gaudard"
+author: "Joseph Gaudard, Marta Baumane, Hilary Rose Dawson, Sorrel Hartford, Mukhlish Jamal Musa Holle, Barryette Oberholzer, Julia Chacon"
 date: '2022-06-14'
 output: github_document
 # output: pdf_document #in case we need to print it

@@ -1,6 +1,7 @@
 Readme
 ================
-Joseph Gaudard
+Joseph Gaudard, Marta Baumane, Hilary Rose Dawson, Sorrel Hartford,
+Mukhlish Jamal Musa Holle, Barryette Oberholzer, Julia Chacon
 2022-06-14
 
 <!-- This file is compiled with rmarkdown::render in R_code/data_dic/create_data_dictionary.R", do not knit here -->
