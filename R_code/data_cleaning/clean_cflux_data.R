@@ -86,7 +86,7 @@ cflux_all_clean <- cflux_all_clean %>%
            temp_soil, temp_airavg, flag)
 
 
-write_csv(cflux_all_clean, "clean_data/PFTC6_cflux_2022.csv")
+write_csv(cflux_all_clean, "clean_data/PFTC6_clean_GlobalChangeExperiment_cflux_2022.csv")
 
 # to write number of flags in data paper
 cflux_all_clean %>% select(flag, flux_value) %>% count(flag)

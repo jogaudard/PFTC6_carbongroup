@@ -5,10 +5,10 @@ date: '2022-06-14'
 output: github_document
 # output: pdf_document #in case we need to print it
 ---
+<!-- This file is compiled with rmarkdown::render in R_code/data_dic/create_data_dictionary.R", do not knit here -->
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# source("R_code/data_dic/create_data_dictionary.R")
 ```
 
 # Introduction

@@ -195,7 +195,7 @@ microclimate.export <- microclimate.clean %>%
   relocate(datetime, loggerID, turfID, origSiteID, destSiteID, turfID, loggerID, warming, datetime_in, datetime_out,
            climate_variable, value, flag)
 
-write_csv(microclimate.export, "clean_data/PFTC6_microclimate_2022.csv")
+write_csv(microclimate.export, "clean_data/PFTC6_clean_GlobalChangeExperiment_microclimate_2022.csv")
 
 # to write number of flags in data paper
 microclimate.export %>% select(flag, value) %>% count(flag)
