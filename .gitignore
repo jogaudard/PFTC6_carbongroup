@@ -47,6 +47,9 @@ vignettes/*.pdf
 *.Rproj
 *.html
 *.txt
+*.eps
+*.ps
+*.tif
 
 raw_data
 

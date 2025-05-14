@@ -266,5 +266,7 @@ plots_making <- function(data_long, fluxstarttimes, font_size) {
 plots_making(data_long, fluxstarttimes, 10)
 ggsave("PFTC6datapaper_figure_resubmission.svg", width = 3508, height = 2700, units = "px", dpi = 300)
 ggsave("PFTC6datapaper_figure_resubmission.jpg", width = 3508, height = 2700, units = "px", dpi = 300)
-
+ggsave("PFTC6datapaper_figure_resubmission.png", width = 3508, height = 2700, units = "px", dpi = 300)
+ggsave("PFTC6datapaper_figure_resubmission.pdf", width = 3508, height = 2700, units = "px", dpi = 300)
+ggsave("PFTC6datapaper_figure_resubmission.tif", width = 3508, height = 2700, units = "px", dpi = 300)
 
